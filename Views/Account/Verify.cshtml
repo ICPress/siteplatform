@@ -1,0 +1,23 @@
+@model (string Message, string Title)
+@{
+    ViewData["Title"] = Model.Title;
+}
+
+<div style="display:flex; align-items:center; justify-content:center; min-height:60vh; padding: 40px 15px;">
+    <div style="background: var(--bg-secondary); border-radius: 12px; padding: 50px 40px; text-align:center; max-width: 480px; box-shadow: 0 8px 30px var(--shadow-color); border-top: 4px solid var(--accent-color);">
+        <i class="fas fa-envelope-open-text" style="font-size: 3rem; color: var(--accent-color); margin-bottom: 24px; display:block;"></i>
+        <h1 style="font-size:1.6rem; margin-bottom:16px;">@Html.Raw(Model.Message)</h1>
+        <p style="color:var(--text-secondary);">Press on the button below to continue.</p>
+        <form action="#" id="verify-form" onsubmit="redirectIntent(event)">
+        <input type="submit" class="btn btn-primary" style="margin-top: 24px; display:inline-block;" value="Verify Email">
+        </form>
+    </div>
+</div>
+
+<script type="text/javascript">
+    function redirectIntent(event){
+      event.preventDefault();
+      window.location.href = "intent://"+window.location.href.substr(window.location.href.indexOf('//')+2)+"#Intent;scheme=https;package=net.crowdventures.storypop;end";
+      return false;
+    }
+</script>

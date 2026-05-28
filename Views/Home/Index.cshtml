@@ -1,0 +1,355 @@
+﻿@model HomePageModel
+@using siteplatform.Util
+@inject Microsoft.Extensions.Options.IOptions<ServerSettings> ServerSettingsOptions
+@{
+    ViewData["Title"] = "Latest Articles";
+    var cfg       = ServerSettingsOptions.Value;
+    var smallCDN  = cfg.CDNRequestSmallPath;
+    var bigCDN    = cfg.CDNRequestLargePath;
+    var stories   = Model?.LatestStories ?? new List<StoryPublishedModel>();
+    var hero      = stories.FirstOrDefault();
+    // Hero uses miniature — card thumbnail is only 280×160px, full image is wasteful.
+    // GetMiniatureUrl returns smallCDN/m_name when available, bigCDN/name as fallback.
+    var heroImage     = hero != null
+        ? LinkUtil.GetMiniatureUrl(hero.StylingInfo?.TitleBackgroundImage, bigCDN, smallCDN)
+        : null;
+    var rest      = stories.Skip(1).ToList();
+    var featured  = rest.Take(4).ToList();
+    var latest    = rest.Skip(4).ToList();
+}
+
+@section Styles {
+@* Preload the hero card miniature — 280×160px card, miniature is the right size *@
+@if (heroImage != null)
+{
+    <link rel="preload" as="image" href="@heroImage" fetchpriority="high">
+}
+}
+
+@* ── Trending tags scrollable bar ── *@
+@if (Model?.TrendingTags?.Any() == true)
+{
+    <div class="trending-tags-bar">
+        <div class="container">
+            <div class="trending-tags-inner">
+                <span class="trending-bar-label"><i class="fas fa-fire"></i>&nbsp;Trending</span>
+                @foreach (var tag in Model.TrendingTags)
+                {
+                    var chgClass = tag.PercentageChange >= 0 ? "up" : "down";
+                    var chgIcon  = tag.PercentageChange >= 0 ? "▲" : "▼";
+                    <a href="/q/@tag.Tag" class="trending-tag-pill">
+                        #@tag.Tag
+                        <span class="t-change @chgClass">@chgIcon @(Math.Abs(tag.PercentageChange).ToString("0"))%</span>
+                    </a>
+                }
+            </div>
+        </div>
+    </div>
+}
+
+<section class="articles-section">
+    <div class="container articles-container">
+        <div class="articles-main">
+
+            @* ── Hero card ── *@
+            @if (hero != null)
+            {
+                var heroTitle = (!string.IsNullOrEmpty(hero.StoryTitle)) ? hero.StoryTitle : hero.EmptyTitle;
+                var heroCategory = hero.Category;
+                DateTime? heroTs = null;
+                if (!string.IsNullOrEmpty(hero.Timestamp))
+                    heroTs = DateTime.Parse(hero.Timestamp, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.AssumeUniversal).ToUniversalTime();
+
+                <section class="hero-section">
+                    <article class="article-card hero-card @(heroImage != null ? "has-image" : "no-image")" onclick="location.href='/s/@hero.SlugTitle'">
+                        @if (heroImage != null)
+                        {
+                            <a href="/s/@hero.SlugTitle" class="article-image-link">
+                                <img src="@heroImage"
+                                     alt="@heroTitle"
+                                     loading="eager"
+                                     decoding="async">
+                            </a>
+                        }
+                        <div class="article-content">
+                            @if (heroCategory != null)
+                            {
+                                <a href="/q/@heroCategory" class="article-category">@heroCategory</a>
+                            }
+                            <h2 class="article-title">
+                                <a href="/s/@hero.SlugTitle" class="article-title-link">@heroTitle</a>
+                            </h2>
+                            @if (!string.IsNullOrEmpty(hero.ContentText))
+                            {
+                                <a href="/s/@hero.SlugTitle" class="article-excerpt-link">
+                                    <p class="article-excerpt">@(hero.ContentText.Length > 200 ? hero.ContentText.Substring(0, 200) + "…" : hero.ContentText)</p>
+                                </a>
+                            }
+                            <div class="article-meta">
+                                <a href="/q/u/@hero.AuthorName" class="article-author-link">
+                                    @if (!string.IsNullOrEmpty(hero.AuthorBadge))
+                                    {
+                                        var heroIconUrl = LinkUtil.GetDefaultImageLinkFromImageInfoMetadata(hero.AuthorBadge, bigCDN, smallCDN);
+                                        <div class="article-author-badge" style="background-image:url('@heroIconUrl');"></div>
+                                    }
+                                    else
+                                    {
+                                        <div class="article-author-avatar"><i class="fas fa-user-secret"></i></div>
+                                    }
+                                </a>
+                                <a href="/q/u/@hero.AuthorName" class="article-author-name-link">@hero.AuthorName</a>
+                                @if (heroTs.HasValue)
+                                {
+                                    <span class="article-date"><i class="fas fa-clock"></i> @DateUtil.GetTimeAgoString(heroTs.Value)</span>
+                                }
+                                @if (hero.Hearts > 0)
+                                {
+                                    <div class="article-stats">
+                                        <div class="article-likes"><i class="fas fa-heart"></i> @hero.Hearts</div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </article>
+                </section>
+            }
+
+            @* ── Featured 2×2 grid ── *@
+            @if (featured.Any())
+            {
+                <section class="section">
+                    <h2 class="section-title">Featured</h2>
+                    <div class="article-grid">
+                        @foreach (var article in featured)
+                        {
+                            var title    = (!string.IsNullOrEmpty(article.StoryTitle)) ? article.StoryTitle : article.EmptyTitle;
+                            var imgUrl   = LinkUtil.GetMiniatureUrl(article.StylingInfo?.TitleBackgroundImage, bigCDN, smallCDN);
+                            var category = article.Category;
+                            DateTime? ts = null;
+                            if (!string.IsNullOrEmpty(article.Timestamp))
+                                ts = DateTime.Parse(article.Timestamp, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.AssumeUniversal).ToUniversalTime();
+
+                            <article class="article-card @(imgUrl != null ? "has-image" : "no-image")" onclick="location.href='/s/@article.SlugTitle'">
+                                @if (imgUrl != null)
+                                {
+                                    <a href="/s/@article.SlugTitle" class="article-image-link">
+                                        <img src="@imgUrl" alt="@title" loading="lazy" decoding="async">
+                                    </a>
+                                }
+                                <div class="article-content">
+                                    @if (category != null)
+                                    {
+                                        <a href="/q/@category" class="article-category">@category</a>
+                                    }
+                                    <h3 class="article-title">
+                                        <a href="/s/@article.SlugTitle" class="article-title-link">@title</a>
+                                    </h3>
+                                    <div class="article-meta">
+                                        <a href="/q/u/@article.AuthorName" class="article-author-link">
+                                        @if (!string.IsNullOrEmpty(article.AuthorBadge))
+                                            {
+                                                var artIconUrl = LinkUtil.GetDefaultImageLinkFromImageInfoMetadata(article.AuthorBadge, bigCDN, smallCDN);
+                                                <div class="article-author-badge" style="background-image:url('@artIconUrl');"></div>
+                                            }
+                                            else
+                                            {
+                                                <div class="article-author-avatar"><i class="fas fa-user-secret"></i></div>
+                                        }
+                                        </a>
+                                        <a href="/q/u/@article.AuthorName" class="article-author-name-link">@article.AuthorName</a>
+                                        @if (ts.HasValue)
+                                        {
+                                            <span class="article-date"><i class="fas fa-clock"></i> @DateUtil.GetTimeAgoString(ts.Value)</span>
+                                        }
+                                        @if (article.Hearts > 0)
+                                        {
+                                            <div class="article-stats">
+                                                <div class="article-likes"><i class="fas fa-heart"></i> @article.Hearts</div>
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                            </article>
+                        }
+                    </div>
+                </section>
+            }
+
+            @* ── Per-category story strips ── *@
+            @if (Model?.CategorySections?.Any() == true)
+            {
+                foreach (var section in Model.CategorySections)
+                {
+                    <section class="category-strip">
+                        <div class="category-strip-header">
+                            <h2 class="category-strip-title">
+                                <span class="cat-icon">@(section.Category.Length > 0 ? section.Category[0].ToString().ToUpper() : "?")</span>
+                                @(section.Category)
+                            </h2>
+                            <a href="/q/@(section.Category)" class="category-strip-more">More @(section.Category) →</a>
+                        </div>
+                        <div class="category-story-grid">
+                            @foreach (var article in section.Stories)
+                            {
+                                var title    = (!string.IsNullOrEmpty(article.StoryTitle)) ? article.StoryTitle : article.EmptyTitle;
+                                var imgUrl   = LinkUtil.GetMiniatureUrl(article.StylingInfo?.TitleBackgroundImage, bigCDN, smallCDN);
+                                var category = article.Category;
+                                <article class="article-card @(imgUrl != null ? "" : "no-image")" onclick="location.href='/s/@article.SlugTitle'">
+                                    @if (imgUrl != null)
+                                    {
+                                        <a href="/s/@article.SlugTitle" class="article-image-link">
+                                            <img src="@imgUrl" alt="@title" loading="lazy" decoding="async">
+                                        </a>
+                                    }
+                                    <div class="article-content">
+                                        @if (category != null)
+                                        {
+                                            <a href="/q/@category" class="article-category">@category</a>
+                                        }
+                                        <h3 class="article-title">
+                                            <a href="/s/@article.SlugTitle" class="article-title-link">@title</a>
+                                        </h3>
+                                        <div class="article-meta">
+                                            <a href="/q/u/@article.AuthorName" class="article-author-link">
+                                                @if (!string.IsNullOrEmpty(article.AuthorBadge))
+                                                {
+                                                    var catIconUrl = LinkUtil.GetDefaultImageLinkFromImageInfoMetadata(article.AuthorBadge, bigCDN, smallCDN);
+                                                    <div class="article-author-badge" style="background-image:url('@catIconUrl');"></div>
+                                                }
+                                                else
+                                                {
+                                                    <div class="article-author-avatar"><i class="fas fa-user-secret"></i></div>
+                                                }
+                                            </a>
+                                            <a href="/q/u/@article.AuthorName" class="article-author-name-link">@article.AuthorName</a>
+                                            @if (article.Hearts > 0)
+                                            {
+                                                <div class="article-stats">
+                                                    <div class="article-likes"><i class="fas fa-heart"></i> @article.Hearts</div>
+                                                </div>
+                                            }
+                                        </div>
+                                    </div>
+                                </article>
+                            }
+                        </div>
+                    </section>
+                }
+            }
+
+            @* ── Latest stories list ── *@
+            @if (latest.Any())
+            {
+                <section class="section">
+                    <h2 class="section-title">Latest Articles</h2>
+                    <div class="article-list">
+                        @foreach (var article in latest)
+                        {
+                            var title    = (!string.IsNullOrEmpty(article.StoryTitle)) ? article.StoryTitle : article.EmptyTitle;
+                            var imgUrl   = LinkUtil.GetMiniatureUrl(article.StylingInfo?.TitleBackgroundImage, bigCDN, smallCDN);
+                            var category = article.Category;
+                            DateTime? ts = null;
+                            if (!string.IsNullOrEmpty(article.Timestamp))
+                                ts = DateTime.Parse(article.Timestamp, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.AssumeUniversal).ToUniversalTime();
+
+                            <article class="article-card @(imgUrl != null ? "has-image" : "no-image")" onclick="location.href='/s/@article.SlugTitle'">
+                                @if (imgUrl != null)
+                                {
+                                    <a href="/s/@article.SlugTitle" class="article-image-link">
+                                        <img src="@imgUrl" alt="@title" loading="lazy" decoding="async">
+                                    </a>
+                                }
+                                <div class="article-content">
+                                    @if (category != null)
+                                    {
+                                        <a href="/q/@category" class="article-category">@category</a>
+                                    }
+                                    <h3 class="article-title">
+                                        <a href="/s/@article.SlugTitle" class="article-title-link">@title</a>
+                                    </h3>
+                                    @if (!string.IsNullOrEmpty(article.ContentText))
+                                    {
+                                        <a href="/s/@article.SlugTitle" class="article-excerpt-link">
+                                            <p class="article-excerpt">@(article.ContentText.Length > 160 ? article.ContentText.Substring(0, 160) + "…" : article.ContentText)</p>
+                                        </a>
+                                    }
+                                    <div class="article-meta">
+                                        <a href="/q/u/@article.AuthorName" class="article-author-link">
+                                            @if (!string.IsNullOrEmpty(article.AuthorBadge))
+                                            {
+                                                var latIconUrl = LinkUtil.GetDefaultImageLinkFromImageInfoMetadata(article.AuthorBadge, bigCDN, smallCDN);
+                                                <div class="article-author-badge" style="background-image:url('@latIconUrl');"></div>
+                                            }
+                                            else
+                                            {
+                                                <div class="article-author-avatar"><i class="fas fa-user-secret"></i></div>
+                                            }
+                                        </a>
+                                        <a href="/q/u/@article.AuthorName" class="article-author-name-link">@article.AuthorName</a>
+                                        @if (ts.HasValue)
+                                        {
+                                            <span class="article-date"><i class="fas fa-clock"></i> @DateUtil.GetTimeAgoString(ts.Value)</span>
+                                        }
+                                        @if (article.Hearts > 0)
+                                        {
+                                            <div class="article-stats">
+                                                <div class="article-likes"><i class="fas fa-heart"></i> @article.Hearts</div>
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                            </article>
+                        }
+                    </div>
+                </section>
+            }
+
+            @if (!stories.Any() && !(Model?.CategorySections?.Any() == true))
+            {
+                <div style="text-align:center; padding: 60px 0; color: var(--text-secondary);">
+                    <i class="fas fa-newspaper" style="font-size:3rem; margin-bottom:20px; color:var(--accent-color); display:block;"></i>
+                    <p>No articles available right now. Check back soon!</p>
+                </div>
+            }
+
+        </div>
+
+        @* ── Sidebar ── *@
+        <aside class="articles-sidebar">
+
+            @* Trending Categories — uses .topic chip style from deepseek *@
+            @if (Model?.TrendingCategories?.Any() == true)
+            {
+                <div class="sidebar-widget">
+                    <h3 class="widget-title">Trending Categories</h3>
+                    <div class="categories-sidebar-list">
+                        @foreach (var cat in Model.TrendingCategories)
+                        {
+                            var chgClass = cat.PercentageChange >= 0 ? "up" : "down";
+                            var chgIcon  = cat.PercentageChange >= 0 ? "▲" : "▼";
+                            <a href="/q/@cat.Tag" class="cat-topic">
+                                @cat.Tag
+                                <span class="cat-change @chgClass">@chgIcon @(Math.Abs(cat.PercentageChange).ToString("0"))%</span>
+                            </a>
+                        }
+                    </div>
+                </div>
+            }
+
+            @* Trending Tags — uses .tag pill style from deepseek *@
+            @if (Model?.TrendingTags?.Any() == true)
+            {
+                <div class="sidebar-widget">
+                    <h3 class="widget-title">Trending Tags</h3>
+                    <div class="tag-cloud">
+                        @foreach (var tag in Model.TrendingTags)
+                        {
+                            <a href="/q/@tag.Tag" class="tag" title="@tag.Usage articles this week">#@tag.Tag</a>
+                        }
+                    </div>
+                </div>
+            }
+
+        </aside>
+    </div>
+</section>

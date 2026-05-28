@@ -1,0 +1,178 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>@ViewData["Title"] - ICPress</title>
+    <!-- Step 1: apply class before ANY paint — synchronous, no defer/async -->
+    <script>
+        (function() {
+            var dark = localStorage.getItem('darkMode') === 'true';
+            if (dark) {
+                document.documentElement.classList.add('dark-mode', 'no-transition');
+            }
+            // Write a data attribute so CSS can target it without JS timing issues
+            document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+        })();
+    </script>
+    <!-- Step 2: tell the browser which colour scheme is active (affects scrollbar, inputs, etc.) -->
+    <meta id="colorSchemeMeta" name="color-scheme" content="light dark">
+    <!--  Sets html background so even the blank-page state between navigations
+         is the correct colour. Uses the same values as the CSS custom properties. -->
+    <style>
+        html[data-theme='dark'] {
+            background-color: #0A0E17;
+            color-scheme: dark;
+        }
+        html[data-theme='light'] {
+            background-color: #F5F7FA;
+            color-scheme: light;
+        }
+        /* Fallback for very first visit (no localStorage) */
+        html:not([data-theme]) {
+            background-color: #F5F7FA;
+        }
+    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/assets/css/style.css">
+     <!-- Absolute path for icons so that they can be resolved by external apps -->
+    <link rel="apple-touch-icon" href="https://icpress.org/apple-touch-icon_default.png" />
+    <link rel="apple-touch-icon" sizes="57x57" href="https://icpress.org/apple-touch-icon-57x57.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="https://icpress.org/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="https://icpress.org/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="https://icpress.org/favicon-16x16.png">
+    <link rel="manifest" href="/site.webmanifest">
+    @RenderSection("Styles", required: false)
+</head>
+<body>
+    <!-- Breaking News Bar -->
+@*     <div class="breaking-news">
+        <div class="container">
+            <div class="breaking-news-content">
+                <span class="breaking-label">TRENDING</span>
+                <span class="breaking-text">
+                    <a href="/">Discover the latest articles on ICPress</a>
+                </span>
+            </div>
+        </div>
+    </div> *@
+
+    <!-- Header -->
+    <header class="header" id="mainHeader">
+        <div class="container">
+            <div class="header-inner">
+                <a class="logo" href="/">
+                    <img src="/static/logo.svg" alt="ICPress" class="logo-img">
+                </a>
+                <button class="mobile-menu-toggle" id="mobileMenuToggle">☰</button>
+                <nav class="nav" id="mainNav">
+                    <ul>
+                        <li>
+                            <button class="dark-mode-toggle" id="darkModeToggle">
+                                <i class="fas fa-moon"></i> Dark
+                            </button>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    @RenderBody()
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-inner">
+                <div class="footer-column">
+                    <a class="footer-logo" href="/"><img src="/static/logo_square.svg" alt="ICPress" class="footer-logo-img"></a>
+                    <p class="footer-about">Individual Contributor Press is an open-source, contributor-owned news platform. Publish articles, earn points, exchange them for equity, and grow with the platform as a co-owner.</p>
+                    <a href="https://github.com/ICPress" style="float:right"><img style="height: 70px; display: block;" alt="Open Source Code" src="/assets/images/GitHub_Invertocat_White.png"></a>
+                    <a href="https://play.google.com/store/apps/details?id=net.crowdventures.storypop&amp;pcampaignid=pcampaignidMKT-Other-global-all-co-prtnr-py-PartBadge-Mar2515-1"><img style="height: 70px; display: block;" alt="Get it on Google Play" src="/assets/images/en_badge_web_generic.png"></a>
+                </div>
+                <div class="footer-column">
+                    <h4 class="footer-heading">Company</h4>
+                    <ul class="footer-links">
+                        <li><a href="/about">About Us</a></li>
+                        <li><a href="/about#join-us">Join Our Team</a></li>
+                        <li><a href="/about/guidelines">Editorial Guidelines</a></li>
+                        <li><a href="/privacy-policy">Privacy Policy</a></li>
+                        <li><a href="/delete-data">Delete My Data</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="copyright">
+                <p>© @DateTime.Now.Year Individual Contributor Press (ICPress). All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+<script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Dark Mode — applied to <html> so CSS vars cascade before body renders
+            const html = document.documentElement;
+            const darkModeToggle = document.getElementById('darkModeToggle');
+            let darkMode = localStorage.getItem('darkMode') === 'true';
+
+            // Remove no-transition after first paint so subsequent interactions animate
+            requestAnimationFrame(function() {
+                requestAnimationFrame(function() {
+                    html.classList.remove('no-transition');
+                });
+            });
+
+            // Sync toggle button state (class already applied in <head> inline script)
+            if (darkMode) {
+                darkModeToggle.classList.add('active');
+                darkModeToggle.innerHTML = '<i class="fas fa-sun"></i> Light';
+            }
+
+            darkModeToggle.addEventListener('click', function () {
+                darkMode = !darkMode;
+                requestAnimationFrame(function() {
+                    html.classList.toggle('dark-mode', darkMode);
+                    html.setAttribute('data-theme', darkMode ? 'dark' : 'light');
+                    darkModeToggle.classList.toggle('active', darkMode);
+                    darkModeToggle.innerHTML = darkMode
+                        ? '<i class="fas fa-sun"></i> Light'
+                        : '<i class="fas fa-moon"></i> Dark';
+                    localStorage.setItem('darkMode', darkMode);
+                });
+            });
+
+            // Scroll-responsive header
+            window.addEventListener('scroll', function () {
+                const header = document.getElementById('mainHeader');
+                header.classList.toggle('scrolled', window.scrollY > 50);
+            });
+
+            // Mobile menu
+            const mobileMenuToggle = document.getElementById('mobileMenuToggle');
+            const mainNav = document.getElementById('mainNav');
+            mobileMenuToggle.addEventListener('click', function () {
+                mainNav.classList.toggle('active');
+            });
+
+            // User Menu
+            const userMenuButton = document.getElementById('userMenuButton');
+            const userDropdown = document.getElementById('userDropdown');
+            const userMenuContainer = document.getElementById('userMenuContainer');
+
+            if (userMenuButton) {
+                userMenuButton.addEventListener('click', function (e) {
+                    e.stopPropagation();
+                    userDropdown.classList.toggle('active');
+                });
+
+                document.addEventListener('click', function (e) {
+                    if (userMenuContainer && !userMenuContainer.contains(e.target)) {
+                        userDropdown.classList.remove('active');
+                    }
+                });
+
+                userDropdown.addEventListener('click', function (e) { e.stopPropagation(); });
+            }
+        });
+    </script>
+    @RenderSection("Scripts", required: false)
+</body>
+</html>

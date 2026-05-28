@@ -1,0 +1,195 @@
+@{
+    ViewData["Title"] = "ICPress - Data and account removal";
+    ViewData["Description"] = "Request data and account removal";
+}
+
+<style>
+
+    .container { max-width: 1200px; margin: 0 auto; padding: 0 15px; }
+
+    .main_banner {
+        min-height: 70vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 40px 15px;
+    }
+
+    .main_section {
+        background: var(--bg-secondary);
+        border-radius: 12px;
+        padding: 50px 40px;
+        text-align: center;
+        max-width: 520px;
+        margin: 0 auto;
+        box-shadow: 0 8px 30px var(--shadow-color);
+        border-top: 4px solid #E53E3E;
+    }
+
+    .Text_section h1 {
+        font-size: 1.6rem;
+        margin-bottom: 16px;
+        color: var(--text-primary);
+    }
+
+    .form-row {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    .input-data input {
+        width: 100%;
+        padding: 12px 16px;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        font-size: 16px;
+        background-color: var(--bg-primary);
+        color: var(--text-primary);
+        transition: all 0.3s ease;
+    }
+
+    .input-data input:focus {
+        outline: none;
+        border-color: var(--accent-color);
+        box-shadow: 0 0 0 3px rgba(62,146,204,0.1);
+    }
+
+    .input-data input[type="submit"] {
+        background-color: #E53E3E;
+        color: white;
+        border: none;
+        cursor: pointer;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+
+    .input-data input[type="submit"]:hover {
+        background-color: #C53030;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(229,62,62,0.3);
+    }
+
+    #error {
+        list-style: none;
+        color: #E53E3E;
+        padding: 10px;
+        text-align: center;
+        font-size: 14px;
+    }
+
+    #success h2 {
+        color: var(--text-primary);
+        font-size: 1.2rem;
+    }
+
+    .back-home {
+        display: inline-block;
+        margin-top: 24px;
+        color: var(--accent-color);
+        font-weight: 500;
+    }
+
+    .back-home:hover {
+        text-decoration: underline;
+    }
+
+    .info-text {
+        margin-top: 20px;
+        color: var(--text-secondary);
+        font-size: 14px;
+    }
+
+    @@media (max-width: 768px) {
+        .main_section {
+            padding: 30px 20px;
+        }
+        
+        .Text_section h1 {
+            font-size: 1.3rem;
+        }
+    }
+</style>
+
+<div class="main_banner">
+    <div class="container">
+        <div class="main_section">
+            <div class="Text_section">
+                <h1>Delete Account &amp; Data</h1>
+                <form action="#" id="signup-form" onsubmit="redirectIntent(event)">
+                    <div class="form-row">
+                        <div class="form-row" id="form-input">
+                            <div class="input-data">
+                                <input type="text" required id="email" name="email" placeholder="Your email" style="margin: auto;">
+                            </div>
+                            <div class="input-data">
+                                <li id="error" style="color: #E53E3E; padding: 10px; text-align: center;">&nbsp;</li>
+                            </div>
+                        </div>
+                        <div class="form-row submit-btn">
+                            <div class="input-data" id="success" style="display: none">
+                                <h2 style="color: var(--text-primary);">Success! We will inform you as soon as we have processed your request.</h2>
+                            </div>
+                            <div class="input-data" id="submit">
+                                <input type="submit" value="DELETE MY ACCOUNT &amp; DATA" style="margin: auto;">
+                            </div>
+                            <div class="input-data" id="loading" style="display: none">
+                                <img src="./assets/images/ajax-loader.gif" height="40px" alt="loading" id="loading">
+                            </div>
+                        </div>
+                    </div>
+                </form>
+                <p class="info-text">To delete your account and all associated data, please enter your email above. If you need further assistance, contact our support team.</p>
+                <a href="/" class="back-home">Back to Home</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.3/jquery.min.js"></script>
+<script type="text/javascript">
+    var submitFn = function () {
+        var apiUrl = 'https://api.icpress.org/waitinglist/cleardatarequest';
+        var testEmail = /^[A-Z0-9._%+-]+@@([A-Z0-9-]+\.)+[A-Z]{2,4}$/i;
+        var email = $("#email").val().trim();
+        if (testEmail.test(email)) {
+            let myform = document.getElementById("signup-form");
+            let fd = new FormData(myform);
+            $.ajax({
+                url: apiUrl,
+                data: fd,
+                cache: false,
+                processData: false,
+                contentType: false,
+                dataType: 'text',
+                type: 'POST',
+                error: function (jqXHR, textStatus, errorThrown) {
+                    if (jqXHR.status == 520) $("#error").html("Could not process your request at the moment, try again later.");
+                    else $("#error").html("We are having a maintenance, try again later.");
+                    $('#submit').show();
+                    $('#loading').hide();
+                },
+                success: function (response) {
+                    $("#form-input").hide();
+                    $('#submit').hide();
+                    $('#loading').hide();
+                    $(".frc-captcha").hide();
+                    $('#success').show();
+                }
+            });
+        }
+        else {
+            $("#error").html("Enter a valid email address.")
+            $('#submit').show();
+            $('#loading').hide();
+        }
+    }
+
+    function redirectIntent(event) {
+        $('#submit').hide();
+        $('#loading').show();
+        submitFn();
+        event.preventDefault();
+        return false;
+    }
+</script>

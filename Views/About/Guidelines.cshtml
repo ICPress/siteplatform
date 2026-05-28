@@ -1,0 +1,367 @@
+@model ArticleGuidelines
+@{
+    ViewData["Title"] = "Editorial Guidelines — ICPress";
+}
+
+@section Styles {
+<style>
+    /* ── Guidelines page — scoped styles ── */
+    .guidelines-hero {
+        background-color: var(--bg-header);
+        padding: 56px 0 40px;
+        border-bottom: 4px solid var(--accent-color);
+    }
+
+    .guidelines-hero-inner { max-width: 760px; }
+
+    .guidelines-eyebrow {
+        font-size: 0.7rem;
+        font-weight: 800;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        color: var(--accent-color);
+        margin-bottom: 14px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .guidelines-hero h1 {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #ffffff;
+        line-height: 1.2;
+        margin-bottom: 16px;
+    }
+
+    .guidelines-hero p {
+        font-size: 1rem;
+        color: rgba(255,255,255,0.65);
+        line-height: 1.7;
+        margin-bottom: 0;
+        max-width: 620px;
+    }
+
+    .guidelines-meta {
+        margin-top: 24px;
+        display: flex;
+        align-items: center;
+        gap: 24px;
+        flex-wrap: wrap;
+    }
+
+    .guidelines-meta-item {
+        font-size: 0.78rem;
+        color: rgba(255,255,255,0.5);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .guidelines-meta-item strong {
+        color: rgba(255,255,255,0.85);
+        font-weight: 600;
+    }
+
+    .guidelines-body { padding: 48px 0 80px; }
+
+    .guidelines-layout {
+        display: grid;
+        grid-template-columns: 220px 1fr;
+        gap: 40px;
+        align-items: start;
+    }
+
+    /* ── Sidebar TOC ── */
+    .guidelines-toc {
+        position: sticky;
+        top: 80px;
+    }
+
+    .guidelines-toc-label {
+        font-size: 0.68rem;
+        font-weight: 800;
+        letter-spacing: 1.6px;
+        text-transform: uppercase;
+        color: var(--text-tertiary);
+        margin-bottom: 12px;
+        padding-bottom: 8px;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .guidelines-toc-list { list-style: none; padding: 0; margin: 0; }
+    .guidelines-toc-list li { margin-bottom: 2px; }
+    .guidelines-toc-list a {
+        display: block;
+        font-size: 0.82rem;
+        color: var(--text-secondary);
+        padding: 5px 10px;
+        border-radius: 4px;
+        border-left: 2px solid transparent;
+        transition: all 0.2s ease;
+        line-height: 1.4;
+    }
+    .guidelines-toc-list a:hover,
+    .guidelines-toc-list a.active {
+        color: var(--accent-color);
+        border-left-color: var(--accent-color);
+        background: var(--bg-tertiary);
+    }
+
+    /* ── Category section ── */
+    .guideline-category {
+        margin-bottom: 48px;
+        scroll-margin-top: 90px;
+        padding-bottom: 48px;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .guideline-category:last-child {
+        border-bottom: none;
+    }
+
+    .guideline-category-header {
+        display: flex;
+        align-items: baseline;
+        gap: 12px;
+        margin-bottom: 6px;
+    }
+
+    .guideline-category-title {
+        font-size: 1rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+    }
+
+    .weight-badge {
+        font-size: 0.65rem;
+        font-weight: 700;
+        letter-spacing: 0.8px;
+        text-transform: uppercase;
+        padding: 1px 6px;
+        border-radius: 2px;
+        background: var(--bg-tertiary);
+        color: var(--text-tertiary);
+        border: 1px solid var(--border-color);
+    }
+
+    .weight-badge.high {
+        color: #C53030;
+        border-color: rgba(197, 48, 48, 0.3);
+        background: transparent;
+    }
+
+    html.dark-mode .weight-badge.high {
+        color: #F56565;
+        border-color: rgba(245, 101, 101, 0.3);
+    }
+
+    .guideline-category-desc {
+        font-size: 0.88rem;
+        color: var(--text-secondary);
+        line-height: 1.65;
+        margin: 0 0 20px;
+    }
+
+    /* ── Rule list ── */
+    .guideline-rules {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .guideline-rule {
+        display: flex;
+        gap: 12px;
+        align-items: baseline;
+        padding: 9px 0;
+        border-bottom: 1px solid var(--border-color);
+        font-size: 0.9rem;
+        color: var(--text-primary);
+        line-height: 1.65;
+    }
+
+    .guideline-rule:last-child {
+        border-bottom: none;
+    }
+
+    .guideline-rule.optional {
+        color: var(--text-secondary);
+    }
+
+    .rule-marker {
+        flex-shrink: 0;
+        font-size: 0.65rem;
+        font-weight: 700;
+        letter-spacing: 0.8px;
+        text-transform: uppercase;
+        padding: 1px 6px;
+        border-radius: 2px;
+        margin-top: 3px;
+        white-space: nowrap;
+    }
+
+    .rule-marker.required {
+        background: var(--bg-tertiary);
+        color: var(--accent-color);
+        border: 1px solid var(--border-color);
+    }
+
+    .rule-marker.optional {
+        background: transparent;
+        color: var(--text-tertiary);
+        border: 1px solid var(--border-color);
+    }
+
+    @@media (max-width: 768px) {
+        .guidelines-layout { grid-template-columns: 1fr; }
+        .guidelines-toc { display: none; }
+        .guidelines-hero h1 { font-size: 1.5rem; }
+    }
+</style>
+}
+
+@{
+    // Icon map keyed on category id — falls back to fa-file-alt
+    var icons = new Dictionary<string, string>
+    {
+        ["category_classification"] = "fas fa-tags",
+        ["accuracy"]                = "fas fa-check-double",
+        ["clarity"]                 = "fas fa-align-left",
+        ["sourcing"]                = "fas fa-link",
+        ["relevance"]               = "fas fa-newspaper",
+        ["bias"]                    = "fas fa-balance-scale",
+        ["originality"]             = "fas fa-fingerprint",
+        ["grammar"]                 = "fas fa-spell-check",
+        ["ethics"]                  = "fas fa-gavel",
+    };
+
+    string WeightLabel(float w) => w >= 1.4f ? "Critical" : w >= 1.2f ? "High" : "Standard";
+    string WeightClass(float w) => w >= 1.4f ? "high" : "";
+}
+
+<!-- Hero -->
+<div class="guidelines-hero">
+    <div class="container">
+        <div class="guidelines-hero-inner">
+            <div class="guidelines-eyebrow">
+                <i class="fas fa-shield-alt"></i> Editorial Standards
+            </div>
+            <h1>Article Guidelines</h1>
+            <p>
+                Every article published on ICPress is assessed against these standards before
+                the article is published. Contributors are expected to familiarise themselves
+                with each category and its requirements prior to submission.
+            </p>
+            @if (Model != null)
+            {
+                <div class="guidelines-meta">
+                    <div class="guidelines-meta-item">
+                        <i class="fas fa-code-branch"></i>
+                        Version <strong>@Model.Version</strong>
+                    </div>
+                    <div class="guidelines-meta-item">
+                        <i class="fas fa-calendar-alt"></i>
+                        Last updated <strong>@Model.LastUpdated</strong>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<!-- Body -->
+<div class="guidelines-body">
+    <div class="container">
+
+        @if (Model == null)
+        {
+            <div style="background:var(--bg-secondary); border:1px solid var(--border-color);
+                        border-left:3px solid #C53030; border-radius:8px; padding:24px 28px;
+                        color:var(--text-secondary); font-size:0.92rem; line-height:1.6;">
+                <strong>The editorial guidelines could not be retrieved at this time.</strong><br>
+                Please try again shortly. If the issue persists, contact the ICPress editorial team.
+            </div>
+        }
+        else
+        {
+            <div class="guidelines-layout">
+
+                <!-- Sidebar TOC -->
+                <aside class="guidelines-toc">
+                    <div class="guidelines-toc-label">Contents</div>
+                    <ul class="guidelines-toc-list">
+                        @foreach (var cat in Model.Categories)
+                        {
+                            <li>
+                                <a href="#guideline-@cat.Id" data-anchor="guideline-@cat.Id">
+                                    @cat.Name
+                                </a>
+                            </li>
+                        }
+                    </ul>
+                </aside>
+
+                <!-- Categories -->
+                <main>
+                    @foreach (var cat in Model.Categories)
+                    {
+                        var icon = icons.GetValueOrDefault(cat.Id, "fas fa-file-alt");
+                        <section class="guideline-category" id="guideline-@cat.Id">
+
+                            <div class="guideline-category-header">
+                                <span class="guideline-category-title">@cat.Name</span>
+                                <span class="weight-badge @WeightClass(cat.Weight)">
+                                    @WeightLabel(cat.Weight)
+                                </span>
+                            </div>
+
+                            <p class="guideline-category-desc">@cat.Description</p>
+
+                            <ul class="guideline-rules">
+                                @foreach (var rule in cat.SubRules)
+                                {
+                                    <li class="guideline-rule @(rule.IsRequired ? "required" : "optional")">
+                                        <span class="rule-marker @(rule.IsRequired ? "required" : "optional")">
+                                            @(rule.IsRequired ? "Required" : "Advisory")
+                                        </span>
+                                        @rule.Text
+                                    </li>
+                                }
+                            </ul>
+
+                        </section>
+                    }
+                </main>
+
+            </div>
+        }
+
+    </div>
+</div>
+
+@section Scripts {
+<script>
+(function () {
+    // Highlight active TOC entry on scroll
+    const links = document.querySelectorAll('.guidelines-toc-list a');
+    if (!links.length) return;
+
+    const obs = new IntersectionObserver(entries => {
+        entries.forEach(e => {
+            if (e.isIntersecting) {
+                links.forEach(l => l.classList.remove('active'));
+                const active = document.querySelector(
+                    `.guidelines-toc-list a[data-anchor="${e.target.id}"]`
+                );
+                if (active) active.classList.add('active');
+            }
+        });
+    }, { rootMargin: '-20% 0px -70% 0px' });
+
+    document.querySelectorAll('.guideline-category').forEach(s => obs.observe(s));
+})();
+</script>
+}

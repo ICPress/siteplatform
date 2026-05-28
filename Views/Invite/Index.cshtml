@@ -1,0 +1,314 @@
+@{
+    ViewData["Title"] = "You're Invited — ICPress";
+}
+
+<style>
+    /* ── Invite page – scoped styles ── */
+    .invite-wrap {
+        min-height: 70vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 60px 15px;
+    }
+
+    .invite-card {
+        background: var(--bg-secondary);
+        border-radius: 16px;
+        padding: 56px 48px 48px;
+        max-width: 560px;
+        width: 100%;
+        box-shadow: 0 12px 48px var(--shadow-color);
+        border-top: 5px solid var(--accent-color);
+        text-align: center;
+    }
+
+    .invite-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        background: var(--bg-tertiary);
+        color: var(--accent-color);
+        font-size: 0.72rem;
+        font-weight: 800;
+        letter-spacing: 1.4px;
+        text-transform: uppercase;
+        padding: 5px 14px;
+        border-radius: 20px;
+        margin-bottom: 28px;
+    }
+
+    .invite-card h1 {
+        font-size: 1.75rem;
+        line-height: 1.25;
+        margin-bottom: 18px;
+        color: var(--text-primary);
+    }
+
+    .invite-card .invite-lead {
+        font-size: 1rem;
+        color: var(--text-secondary);
+        line-height: 1.65;
+        margin-bottom: 10px;
+    }
+
+    .invite-card .invite-reward {
+        font-size: 0.93rem;
+        color: var(--text-secondary);
+        line-height: 1.6;
+        margin-bottom: 28px;
+        padding: 16px 20px;
+        background: var(--bg-tertiary);
+        border-radius: 10px;
+        border-left: 3px solid var(--accent-color);
+        text-align: left;
+    }
+
+    .invite-reward strong {
+        color: var(--text-primary);
+    }
+
+    .invite-about-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 0.82rem;
+        font-weight: 600;
+        color: var(--accent-color);
+        text-decoration: none;
+        margin-bottom: 32px;
+    }
+    .invite-about-link:hover { text-decoration: underline; color: var(--accent-hover); }
+
+    /* ── Storypop-style form ── */
+    .invite-form .form-row {
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+    }
+
+    .invite-form .input-data {
+        width: 100%;
+    }
+
+    .invite-form input[type="text"] {
+        width: 100%;
+        padding: 14px 18px;
+        border: 2px solid var(--border-color);
+        border-radius: 8px;
+        font-size: 1rem;
+        color: var(--text-primary);
+        background: var(--bg-primary);
+        outline: none;
+        transition: border-color 0.25s ease;
+        margin-bottom: 8px;
+    }
+
+    .invite-form input[type="text"]::placeholder {
+        color: var(--text-tertiary);
+    }
+
+    .invite-form input[type="text"]:focus {
+        border-color: var(--accent-color);
+    }
+
+    .invite-form input[type="submit"] {
+        width: 100%;
+        padding: 14px 18px;
+        border: none;
+        border-radius: 8px;
+        font-size: 1rem;
+        font-weight: 700;
+        background-color: var(--accent-color);
+        color: #fff;
+        cursor: pointer;
+        transition: background-color 0.25s ease, transform 0.15s ease;
+        letter-spacing: 0.3px;
+        margin-top: 4px;
+    }
+
+    .invite-form input[type="submit"]:hover {
+        background-color: var(--accent-hover);
+        transform: translateY(-1px);
+    }
+
+    #invite-error {
+        color: #e53e3e;
+        font-size: 0.88rem;
+        min-height: 1.4em;
+        padding: 4px 0 2px;
+        display: block;
+    }
+
+    #invite-success {
+        display: none;
+        padding: 20px;
+        background: #f0fff4;
+        border-radius: 10px;
+        border: 1px solid #68d391;
+        color: #276749;
+        font-size: 0.95rem;
+        line-height: 1.55;
+        text-align: center;
+    }
+
+    html.dark-mode #invite-success {
+        background: #1a3328;
+        border-color: #2f855a;
+        color: #9ae6b4;
+    }
+
+    #invite-loading {
+        display: none;
+        text-align: center;
+        padding: 12px 0;
+    }
+
+    .invite-divider {
+        border: none;
+        border-top: 1px solid var(--border-color);
+        margin: 32px 0 20px;
+    }
+
+    .invite-fine {
+        font-size: 0.78rem;
+        color: var(--text-tertiary);
+        line-height: 1.5;
+    }
+
+    @@media (max-width: 580px) {
+        .invite-card { padding: 40px 24px 36px; }
+        .invite-card h1 { font-size: 1.45rem; }
+    }
+</style>
+
+<div class="invite-wrap">
+    <div class="invite-card">
+
+        <span class="invite-badge">
+            <i class="fas fa-shield-alt"></i> Press Contributor Invitation
+        </span>
+
+        <h1>You Have Been Invited to Join ICPress</h1>
+
+        <p class="invite-lead">
+            ICPress is an open-source press platform built on individual contribution.
+            It exists to ensure that consequential events — conflicts, policy decisions,
+            humanitarian crises, and public-interest investigations — are reported with
+            rigour, accountability, and independence. Contributors are not passive readers;
+            they are the platform.
+        </p>
+
+        <div class="invite-reward">
+            <strong>Contributor Recognition — StoryPoints &amp; Equity</strong><br>
+            Upon completing registration, both you and the contributor who referred you
+            will receive <strong>StoryPoints</strong> — a formal measure of your stake in
+            the platform. Once a contributor's accumulated points reach the redemption
+            threshold, those points are convertible into <strong>equity shares</strong>
+            in ICPress. Early contributors carry the greatest weight.
+        </div>
+
+        <a href="/About" class="invite-about-link">
+            <i class="fas fa-info-circle"></i> Read more about ICPress and the StoryPoints programme
+        </a>
+
+        <form action="#" id="invite-signup-form" class="invite-form" onsubmit="redirectIntent(event)">
+            <div class="form-row">
+                <div class="form-row" id="invite-form-input">
+                    <div class="input-data">
+                        <input type="text" required id="email" name="email"
+                               placeholder="Enter your email address">
+                    </div>
+                    <div class="input-data">
+                        <span id="invite-error">&nbsp;</span>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="input-data" id="invite-success">
+                        <strong>Registration confirmed.</strong><br><br>
+                        Your StoryPoints have been allocated and are waiting to be claimed.
+                        Download the ICPress app, sign in with this email address, and your
+                        contributor reward will be available immediately.
+                        <a href="https://play.google.com/store/apps/details?id=net.crowdventures.storypop&amp;pcampaignid=pcampaignidMKT-Other-global-all-co-prtnr-py-PartBadge-Mar2515-1"
+                           style="display:block; margin-top: 16px;">
+                            <img style="height: 70px; display: block; margin: 0 auto;"
+                                 alt="Get it on Google Play"
+                                 src="/assets/images/en_badge_web_generic.png">
+                        </a>
+                    </div>
+                    <div class="input-data" id="invite-submit">
+                        <input type="submit" value="Complete Registration">
+                    </div>
+                    <div class="input-data" id="invite-loading">
+                        <img src="/assets/images/ajax-loader.gif" height="36" alt="Processing…">
+                    </div>
+                </div>
+            </div>
+        </form>
+
+        <hr class="invite-divider">
+        <p class="invite-fine">
+            By submitting your email address you confirm your intent to register as
+            a contributor. Your information will not be shared with third parties.
+        </p>
+
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.3/jquery.min.js"></script>
+<script type="text/javascript">
+    var submitFn = function () {
+        var apiUrl = 'https://api.icpress.org/waitinglist/invite/'
+            + window.location.href.substr(
+                window.location.href.indexOf('token=') + 'token='.length
+            );
+
+        var testEmail = /^[A-Z0-9._%+-]+@@([A-Z0-9-]+\.)+[A-Z]{2,4}$/i;
+        var email     = $("#email").val().trim();
+
+        if (testEmail.test(email)) {
+            var myform = document.getElementById("invite-signup-form");
+            var fd     = new FormData(myform);
+
+            $.ajax({
+                url         : apiUrl,
+                data        : fd,
+                cache       : false,
+                processData : false,
+                contentType : false,
+                dataType    : 'text',
+                type        : 'POST',
+                error: function (jqXHR) {
+                    if (jqXHR.status === 520)
+                        $("#invite-error").html("Could not process your signup at the moment — try again later.");
+                    else if (jqXHR.status === 409)
+                        $("#invite-error").html("You've already signed up. Check your mailbox.");
+                    else
+                        $("#invite-error").html("We're under maintenance — try again shortly.");
+
+                    $('#invite-submit').show();
+                    $('#invite-loading').hide();
+                },
+                success: function () {
+                    $("#invite-form-input").hide();
+                    $('#invite-submit').hide();
+                    $('#invite-loading').hide();
+                    $('#invite-success').show();
+                }
+            });
+        } else {
+            $("#invite-error").html("Please enter a valid email address.");
+            $('#invite-submit').show();
+            $('#invite-loading').hide();
+        }
+    };
+
+    function redirectIntent(event) {
+        event.preventDefault();
+        $('#invite-submit').hide();
+        $('#invite-loading').show();
+        submitFn();
+        return false;
+    }
+</script>

@@ -1,0 +1,803 @@
+@model StoryPageModel
+@using siteplatform.Util
+@inject Microsoft.Extensions.Options.IOptions<ServerSettings> ServerSettingsOptions
+@{
+    var cfg      = ServerSettingsOptions.Value;
+    var smallCDN = cfg.CDNRequestSmallPath;
+    var bigCDN   = cfg.CDNRequestLargePath;
+
+    var article      = Model?.Article;
+    var title        = (!string.IsNullOrEmpty(article?.StoryTitle)) ? article?.StoryTitle : article?.EmptyTitle;
+    ViewData["Title"] = title ?? "Article";
+
+    var heroImageUrls    = LinkUtil.GetHeroImageUrls(article?.StylingInfo?.TitleBackgroundImage, bigCDN, smallCDN);
+    var hasMap           = article?.StoryMap != null;
+    var formattedContent = article != null ? StoryUtil.GetFormatedArticleText(article, bigCDN, smallCDN) : "";
+    var categoryLabel    = article?.Category;
+
+    DateTime? timestamp = null;
+    if (!string.IsNullOrEmpty(article?.Timestamp))
+        timestamp = DateTime.Parse(article.Timestamp,
+            System.Globalization.CultureInfo.InvariantCulture,
+            System.Globalization.DateTimeStyles.AssumeUniversal).ToUniversalTime();
+}
+
+@section Styles {
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" />
+@* Preload the LCP hero image *@
+@if (!hasMap && heroImageUrls != null)
+{
+    if (heroImageUrls.SrcSet != null)
+    {
+        <link rel="preload" as="image"
+              href="@heroImageUrls.Src"
+              imagesrcset="@heroImageUrls.SrcSet"
+              imagesizes="@heroImageUrls.Sizes"
+              fetchpriority="high">
+    }
+    else
+    {
+        <link rel="preload" as="image"
+              href="@heroImageUrls.Src"
+              fetchpriority="high">
+    }
+}
+}
+
+@if (Model?.Article == null)
+{
+    <div style="text-align:center; padding:80px 15px; color:var(--text-secondary);">
+        <i class="fas fa-exclamation-circle" style="font-size:3rem; color:var(--accent-color); margin-bottom:20px; display:block;"></i>
+        <h2>Article not found</h2>
+        <p>The article you're looking for doesn't exist or has been removed.</p>
+        <a href="/" class="btn btn-primary" style="margin-top:20px; display:inline-block;">Back to Home</a>
+    </div>
+}
+else
+{
+    @* ── Page header bar ── *@
+    <section class="story-page-header">
+        <div class="container">
+            <nav class="story-breadcrumb">
+                <a href="/" style="text-wrap-mode: nowrap;"><i class="fas fa-home"></i> Home</a>
+                <span class="sep">/</span>
+                @if (categoryLabel != null)
+                {
+                    <a href="/q/@categoryLabel">@categoryLabel</a>
+                    <span class="sep">/</span>
+                }
+                <span>@title</span>
+            </nav>
+
+            @if (categoryLabel != null)
+            {
+                <a href="/q/@categoryLabel" class="story-category-badge">@categoryLabel</a>
+            }
+
+            <h1 class="story-h1">@title</h1>
+
+            <div class="story-meta-row">
+                <a href="/q/u/@article.AuthorName" class="story-author-link">
+                    @if (!string.IsNullOrEmpty(article.AuthorBadge))
+                    {
+                        var metaIconUrl = LinkUtil.GetDefaultImageLinkFromImageInfoMetadata(article.AuthorBadge, bigCDN, smallCDN);
+                        <div class="article-author-badge" style="background-image:url('@metaIconUrl');"></div>
+                    }
+                    else
+                    {
+                        <div class="story-author-avatar"><i class="fas fa-user-secret"></i></div>
+                    }
+                </a>
+                <a href="/q/u/@article.AuthorName" class="story-author-name">@article.AuthorName</a>
+                @if (timestamp.HasValue)
+                {
+                    <span class="story-date">
+                        <i class="fas fa-calendar" style="margin-right:4px;opacity:.6;"></i>@timestamp.Value.ToString("MMM d, yyyy")
+                        &nbsp;&middot;&nbsp;<i class="fas fa-clock" style="margin-right:3px;opacity:.6;"></i>@DateUtil.GetTimeAgoString(timestamp.Value)
+                    </span>
+                }
+                @if (!string.IsNullOrEmpty(article.Location))
+                {
+                    <span class="story-date"><i class="fas fa-map-marker-alt" style="margin-right:4px;opacity:.6;"></i>@article.Location</span>
+                }
+                <div class="story-stats">
+                    @if (article.Hearts > 0)
+                    {
+                        <span class="story-stat"><i class="fas fa-heart"></i> @article.Hearts</span>
+                    }
+                    @if (!string.IsNullOrEmpty(article.LangCode))
+                    {
+                        <span class="story-stat"><i class="fas fa-globe"></i> @article.LangCode.ToUpper()</span>
+                    }
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <div class="story-layout">
+        <main class="story-main">
+
+            @* ── Map (inline, dark tiles, overlay legend) OR hero image ── *@
+            @if (hasMap && article.StoryMap != null)
+            {
+                @if (heroImageUrls != null)
+                {
+                    @* Hero preview — clicking it swaps in the live map *@
+                    <div id="mapHeroPreview" class="story-hero" onclick="loadStoryMap()" role="button" tabindex="0"
+                         aria-label="Click to load the interactive map"
+                         onkeydown="if(event.key==='Enter'||event.key===' ')loadStoryMap()">
+                        <div class="story-hero-grid">
+                            <img src="@heroImageUrls.Src"
+                                 alt="@title — click to load interactive map"
+                                 loading="eager"
+                                 decoding="async"
+                                 @if (heroImageUrls.Width.HasValue)  { <text>width="@heroImageUrls.Width"</text> }
+                                 @if (heroImageUrls.Height.HasValue) { <text>height="@heroImageUrls.Height"</text> }
+                                 @if (heroImageUrls.SrcSet != null) { <text>srcset="@heroImageUrls.SrcSet" sizes="@heroImageUrls.Sizes"</text> }>
+                            <div class="map-preview-cta">
+                                <div class="map-preview-cta-icon">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                        <polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/>
+                                        <line x1="9" y1="3" x2="9" y2="18"/><line x1="15" y1="6" x2="15" y2="21"/>
+                                    </svg>
+                                </div>
+                                Click to load the interactive map
+                            </div>
+                        </div>
+                    </div>
+                }
+                @* Map container — hidden until user clicks the preview *@
+                <div id="storyMapWrapper" class="story-map-container" style="@(heroImageUrls != null ? "display:none;" : "")">
+                    <div id="storyMap"></div>
+                    @* Loading overlay shown while MapLibre GL boots *@
+                    <div id="mapLoadingOverlay" class="map-loading-overlay">
+                        <div class="map-spinner"></div>
+                        <span>Loading map&hellip;</span>
+                    </div>
+                    @* Overlay panel is injected by JS after map init *@
+                </div>
+            }
+            else if (heroImageUrls != null)
+            {
+                <div class="story-hero">
+                    <div class="story-hero-grid">
+                        <img src="@heroImageUrls.Src"
+                             alt="@title"
+                             loading="eager"
+                             decoding="async"
+                             @if (heroImageUrls.SrcSet != null) { <text>srcset="@heroImageUrls.SrcSet" sizes="@heroImageUrls.Sizes"</text> }
+                             @if (heroImageUrls.Width.HasValue)  { <text>width="@heroImageUrls.Width"</text> }
+                             @if (heroImageUrls.Height.HasValue) { <text>height="@heroImageUrls.Height"</text> }>
+                    </div>
+                </div>
+            }
+
+            @* ── Article body ── *@
+            <div class="story-body">@Html.Raw(formattedContent)</div>
+
+            @* ── Sources ── *@
+            @if (article.PublicSources?.Any() == true)
+            {
+                <div class="story-sources-section">
+                    <div class="section-label"><i class="fas fa-link" style="margin-right:5px;"></i>Sources</div>
+                    @foreach (var src in article.PublicSources)
+                    {
+                        <a href="@src" target="_blank" rel="noopener noreferrer">
+                            <i class="fas fa-external-link-alt"></i>@src
+                        </a>
+                    }
+                </div>
+            }
+
+            @* ── Share bar — discrete circle icon buttons ── *@
+            <div class="article-sharing">
+                <span class="section-label">Share</span>
+                <a class="share-button"
+                   href="https://www.facebook.com/sharer/sharer.php?u=@(Uri.EscapeDataString($"{Context.Request.Scheme}://{Context.Request.Host}{Context.Request.Path}"))"
+                   target="_blank" rel="noopener noreferrer"
+                   title="Share on Facebook">
+                    <i class="fab fa-facebook-f"></i>
+                </a>
+                <a class="share-button"
+                   href="https://x.com/intent/tweet?url=@(Uri.EscapeDataString($"{Context.Request.Scheme}://{Context.Request.Host}{Context.Request.Path}"))&text=@(Uri.EscapeDataString(title ?? ""))"
+                   target="_blank" rel="noopener noreferrer"
+                   title="Share on X">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" style="flex-shrink:0;"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.733-8.835L1.254 2.25H8.08l4.253 5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+                </a>
+                <button class="share-button" id="copyUrlBtn" onclick="copyStoryUrl(this)" title="Copy link">
+                    <i class="fas fa-link"></i>
+                </button>
+            </div>
+
+        </main>
+
+        @* ── Sidebar ── *@
+        <aside class="story-sidebar">
+
+            @* Author card *@
+            <a href="/q/u/@article.AuthorName" class="author-widget">
+                @if (!string.IsNullOrEmpty(article.AuthorBadge))
+                {
+                    var sidebarIconUrl = LinkUtil.GetDefaultImageLinkFromImageInfoMetadata(article.AuthorBadge, bigCDN, smallCDN);
+                    <div class="article-author-badge" style="background-image:url('@sidebarIconUrl');width:52px;height:52px;flex-shrink:0;"></div>
+                }
+                else
+                {
+                    <div class="author-widget-avatar"><i class="fas fa-user-secret"></i></div>
+                }
+                <div>
+                    <div class="author-widget-name">@article.AuthorName</div>
+                    <div class="author-widget-link">View all articles →</div>
+                </div>
+            </a>
+
+            @* Category widget *@
+            @if (!string.IsNullOrEmpty(article.Category))
+            {
+                <div class="sidebar-widget">
+                    <h3 class="widget-title">Category</h3>
+                    <div class="trending-topics" style="margin-top:0;">
+                        <a href="/q/@article.Category" class="topic">@article.Category</a>
+                    </div>
+                </div>
+            }
+
+            @* Tags widget *@
+            @if (article.Tags?.Any() == true)
+            {
+                <div class="sidebar-widget">
+                    <h3 class="widget-title">Tags</h3>
+                    <div class="tag-cloud">
+                        @foreach (var tag in article.Tags)
+                        {
+                            <a href="/q/@tag" class="tag">#@tag</a>
+                        }
+                    </div>
+                </div>
+            }
+
+            @* Browse widget *@
+            <div class="sidebar-widget">
+                <h3 class="widget-title">Browse</h3>
+                <div class="trending-topics">
+                    <a href="/" class="topic">Home</a>
+                    <a href="/p/1" class="topic">All Articles</a>
+                    @if (!string.IsNullOrEmpty(article.AuthorName))
+                    {
+                        <a href="/q/u/@article.AuthorName" class="topic">By @article.AuthorName</a>
+                    }
+                </div>
+            </div>
+
+        </aside>
+    </div>
+
+    @* ── Similar articles ── *@
+    @if (Model?.SimilarArticles?.Any() == true)
+    {
+        <section class="similar-articles-section">
+            <div class="container">
+                <h2 class="section-title">Related Articles</h2>
+                <div class="similar-articles-grid">
+                    @{ var simIndex = 0; }
+                    @foreach (var sim in Model.SimilarArticles)
+                    {
+                        var simTitle  = (!string.IsNullOrEmpty(sim.StoryTitle)) ? sim.StoryTitle : sim.EmptyTitle;
+                        var simImg    = LinkUtil.GetMiniatureUrl(sim.StylingInfo?.TitleBackgroundImage, bigCDN, smallCDN);
+                        var simCat    = sim.Category;
+                        DateTime? simTs = null;
+                        if (!string.IsNullOrEmpty(sim.Timestamp))
+                            simTs = DateTime.Parse(sim.Timestamp,
+                                System.Globalization.CultureInfo.InvariantCulture,
+                                System.Globalization.DateTimeStyles.AssumeUniversal).ToUniversalTime();
+
+                        <article class="article-card @(simImg != null ? "" : "no-image")" onclick="location.href='/s/@sim.SlugTitle'">
+                            @if (simImg != null)
+                            {
+                                <a href="/s/@sim.SlugTitle" class="article-image-link">
+                                    <img src="@simImg" alt="@simTitle"
+                                         loading="lazy"
+                                         decoding="async">
+                                </a>
+                            }
+                            <div class="article-content">
+                                @if (simCat != null)
+                                {
+                                    <a href="/q/@simCat" class="article-category">@simCat</a>
+                                }
+                                <h3 class="article-title">
+                                    <a href="/s/@sim.SlugTitle" class="article-title-link">@simTitle</a>
+                                </h3>
+                                @if (!string.IsNullOrEmpty(sim.ContentText))
+                                {
+                                    <p class="article-excerpt">@(sim.ContentText.Length > 120 ? sim.ContentText.Substring(0, 120) + "…" : sim.ContentText)</p>
+                                }
+                                <div class="article-meta">
+                                    <a href="/q/u/@sim.AuthorName" class="article-author-link">
+                                        @if (!string.IsNullOrEmpty(sim.AuthorBadge))
+                                        {
+                                            var simIconUrl = LinkUtil.GetDefaultImageLinkFromImageInfoMetadata(sim.AuthorBadge, bigCDN, smallCDN);
+                                            <div class="article-author-badge" style="background-image:url('@simIconUrl');"></div>
+                                        }
+                                        else
+                                        {
+                                            <div class="article-author-avatar"><i class="fas fa-user-secret"></i></div>
+                                        }
+                                    </a>
+                                    <a href="/q/u/@sim.AuthorName" class="article-author-name-link">@sim.AuthorName</a>
+                                    @if (simTs.HasValue)
+                                    {
+                                        <span class="article-date"><i class="fas fa-clock"></i> @DateUtil.GetTimeAgoString(simTs.Value)</span>
+                                    }
+                                    @if (sim.Hearts > 0)
+                                    {
+                                        <div class="article-stats">
+                                            <div class="article-likes"><i class="fas fa-heart"></i> @sim.Hearts</div>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        </article>
+                        simIndex++;
+                    }
+                </div>
+            </div>
+        </section>
+    }
+
+    @* ── Leaflet: dark tiles, overlay, popups per feature ── *@
+    @if (hasMap && article.StoryMap != null)
+    {
+        @section Scripts {
+        <script>
+        // Sequentially load an array of script URLs, then invoke a callback.
+        function _loadScriptsSeq(urls, cb) {
+            if (!urls.length) { cb(); return; }
+            var s = document.createElement('script');
+            s.src = urls[0];
+            s.onload  = function() { _loadScriptsSeq(urls.slice(1), cb); };
+            s.onerror = function() { console.error('Failed to load ' + urls[0]); };
+            document.head.appendChild(s);
+        }
+
+        var _mapScriptsLoaded = false;
+        var _mapScriptsPending = false;
+
+        // Called when the user clicks the hero-image preview
+        function loadStoryMap() {
+            var preview = document.getElementById('mapHeroPreview');
+            var wrapper = document.getElementById('storyMapWrapper');
+            if (!wrapper) return;
+
+            // Prevent double-click from triggering a second load
+            if (_mapScriptsPending || _mapScriptsLoaded) return;
+            _mapScriptsPending = true;
+
+            // Swap preview -> map (spinner stays visible while scripts + tiles load).
+            // Adding .is-hiding collapses the preview's height immediately so the
+            // map wrapper appears flush under the page header with no blank gap.
+            if (preview) {
+                preview.classList.add('is-hiding');
+                preview.style.transition = 'opacity 0.3s ease';
+                preview.style.opacity = '0';
+                setTimeout(function() { preview.style.display = 'none'; }, 300);
+            }
+            wrapper.style.display = '';
+
+            // Lazy-load Leaflet -> MapLibre GL -> maplibre-gl-leaflet in sequence,
+            // then boot the map once all three are ready.
+            _loadScriptsSeq([
+                'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js',
+                'https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js',
+                'https://unpkg.com/@("@maplibre")/maplibre-gl-leaflet@0.0.22/leaflet-maplibre-gl.js'
+            ], function() {
+                _mapScriptsLoaded = true;
+                _mapScriptsPending = false;
+                // Small tick so the browser paints the container before Leaflet measures it
+                setTimeout(initStoryMap, 50);
+            });
+        }
+
+        var _mapInitialised = false;
+        function initStoryMap() {
+            if (_mapInitialised) return;
+            _mapInitialised = true;
+            var mapData       = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(article.StoryMap));
+            var storyTitle    = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(title ?? ""));
+            var storyLocation = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(article.Location ?? ""));
+
+            // ── Map init ──
+            var initZoom = mapData.zoom;
+
+            // Use Canvas renderer for better path rendering on mobile/low-DPI screens
+            var renderer = L.canvas({ padding: 0.5 });
+            // Map Initialization
+            var map = L.map('storyMap', {
+                zoomControl: false,
+                preferCanvas: true,   
+                renderer: renderer,
+                tap: true,            
+                bounceAtZoomLimits: false
+            }).setView([mapData.centerLat, mapData.centerLng], initZoom);
+
+            // DARK LAYER: OpenFreeMap Dark (MapLibre GL vector style)
+            var darkLayer = L.maplibreGL({
+                style: 'https://tiles.openfreemap.org/styles/dark',
+                attribution: '&copy; <a href="https://openstreetmap.org">OpenStreetMap</a> contributors, &copy; <a href="https://openfreemap.org">OpenFreeMap</a>',
+                maplibreOptions: {
+                    maxCanvasSize: [2048, 2048], 
+                    collectResourceTiming: false, 
+                    fadeDuration: 0,             
+                    refreshExpiredTiles: false   
+                }
+            });
+
+            // LIBERTY LAYER: OpenFreeMap Liberty (MapLibre GL vector style)
+            var libertyLayer = L.maplibreGL({
+                style: 'https://tiles.openfreemap.org/styles/liberty',
+                attribution: '&copy; <a href="https://openstreetmap.org">OpenStreetMap</a> contributors, &copy; <a href="https://openfreemap.org">OpenFreeMap</a>',
+                maplibreOptions: {
+                    maxCanvasSize: [2048, 2048],
+                    collectResourceTiming: false, 
+                    fadeDuration: 0,             
+                    refreshExpiredTiles: false   
+                }
+            });
+
+            darkLayer.addTo(map);
+            L.control.layers({ 'Dark': darkLayer, 'Satellite': libertyLayer }).addTo(map);
+            L.control.scale({ imperial: false }).addTo(map);
+
+            // Force Leaflet to recalculate its container size — fixes grey patches
+            // caused by the container not being fully laid out when the map initialises.
+            // Double rAF ensures the browser has painted the container before we measure.
+            requestAnimationFrame(function() {
+                requestAnimationFrame(function() {
+                    map.invalidateSize({ animate: false });
+                });
+            });
+
+            // ── Helpers ──
+            // markerType: 'incident' = red circle + exclamation (Android: #FF4757, d=20, stroke white 3px)
+            //             'city'     = blue circle (Android: #1E90FF, d=20, stroke white 3px)
+            //             'ordinary' = grey circle, no glow (Android: Color.GRAY, d=30, stroke white 5px)
+            //             (default)  = coloured circle matching legacy behaviour
+            function makeIcon(color, pulse, markerType) {
+                var anim = pulse ? 'animation:mapPulse 2s infinite;' : '';
+                var html, size, anchor;
+
+                if (markerType === 'incident') {
+                    // Red filled circle with white border + white exclamation mark.
+                    // The outer divIcon wrapper is 40x40 (iconSize) so the expanding pulse
+                    // box-shadow has room and is not clipped. The visible dot is 20x20,
+                    // centred inside via flex on the wrapper.
+                    size   = [40, 40];
+                    anchor = [20, 20];
+                    var incidentShadow = pulse ? anim : 'box-shadow:0 0 10px rgba(255,71,87,0.8);';
+                    html = '<div style="'
+                        + 'width:40px;height:40px;'
+                        + 'display:flex;align-items:center;justify-content:center;">'
+                        + '<div style="'
+                        + 'background:#FF4757;'
+                        + 'width:20px;height:20px;border-radius:50%;'
+                        + 'border:3px solid white;'
+                        + incidentShadow
+                        + 'display:flex;align-items:center;justify-content:center;'
+                        + 'box-sizing:border-box;">'
+                        + '<span style="color:white;font-size:11px;font-weight:900;line-height:1;'
+                        + 'font-family:sans-serif;margin-top:-1px;">!</span>'
+                        + '</div></div>';
+
+                } else if (markerType === 'city') {
+                    // Blue filled circle with white border, no glow, no pulse — half original size
+                    size   = [10, 10];
+                    anchor = [5, 5];
+                    html = '<div style="'
+                        + 'background:#1E90FF;'
+                        + 'width:10px;height:10px;border-radius:50%;'
+                        + 'border:2px solid white;'
+                        + 'box-sizing:border-box;'
+                        + '"></div>';
+
+                } else if (markerType === 'ordinary') {
+                    // Grey filled circle with white border, no glow, no pulse — half original size
+                    size   = [15, 15];
+                    anchor = [7, 7];
+                    html = '<div style="'
+                        + 'background:#808080;'
+                        + 'width:15px;height:15px;border-radius:50%;'
+                        + 'border:3px solid white;'
+                        + 'box-sizing:border-box;'
+                        + '"></div>';
+
+                } else {
+                    // Legacy: coloured circle (fallback / line/polygon anchors)
+                    size   = [16, 16];
+                    anchor = [8, 8];
+                    html = '<div style="'
+                        + 'background:' + color + ';'
+                        + 'width:16px;height:16px;border-radius:50%;'
+                        + 'border:2.5px solid white;'
+                        + 'box-shadow:0 0 12px ' + color + ';'
+                        + anim
+                        + '"></div>';
+                }
+
+                return L.divIcon({
+                    className: '',
+                    html:       html,
+                    iconSize:   size,
+                    iconAnchor: anchor
+                });
+            }
+
+            // Dark-styled popup — label (bold) + description
+            function makePopup(label, description, markerType) {
+                var html = '<div style="font-family:sans-serif;min-width:180px;max-width:260px;line-height:1.5;'
+                         + 'background:#1a1a2e;color:#fff;padding:4px 2px;border-radius:4px;">';
+                if (markerType) {
+                    html += '<div style="font-size:10px;text-transform:uppercase;letter-spacing:0.6px;'
+                          + 'color:#3E92CC;font-weight:700;margin-bottom:4px;">' + markerType + '</div>';
+                }
+                if (label) {
+                    html += '<div style="font-size:13px;font-weight:700;color:#fff;margin-bottom:4px;">'
+                          + label + '</div>';
+                }
+                if (description) {
+                    html += '<div style="font-size:12px;color:rgba(255,255,255,0.8);">' + description + '</div>';
+                }
+                html += '</div>';
+                return html;
+            }
+
+            // ── GeoJSON parsing ──
+            var legendItems  = [];  // { color, label } — unique entries for the legend
+            var overlayLabel = '';  // title shown in the overlay panel (first feature)
+            var overlayDesc  = '';  // description shown in the overlay panel (first feature)
+            var featureCount = 0;
+
+            var hasGeo = mapData.geoJson
+                && mapData.geoJson !== '{"type":"FeatureCollection","features":[]}';
+
+            if (hasGeo) {
+                try {
+                    var geo = JSON.parse(mapData.geoJson);
+
+                    L.geoJSON(geo, {
+                        renderer: renderer, // canvas renderer — paths visible on mobile
+
+                        // ── Styling for lines and polygons ──
+                        style: function(feature) {
+                            var p    = feature.properties || {};
+                            var t    = feature.geometry.type;
+                            var c    = p.color   || (t.indexOf('Line') >= 0 ? '#ffa502' : '#3E92CC');
+                            var w    = p.weight  || 2.5;
+                            var op   = (p.opacity != null) ? p.opacity : 0.8;
+                            var dash = (p.dashPattern && p.dashPattern !== '0,0') ? p.dashPattern : null;
+                            return { color: c, weight: w, opacity: op,
+                                     fillColor: c, fillOpacity: 0.15, dashArray: dash };
+                        },
+
+                        // ── Point markers (+ optional radius circle) ──
+                        // IMPORTANT: for Point features we ONLY use pointToLayer and bind
+                        // the popup here. onEachFeature skips Points to avoid double-binding.
+                        pointToLayer: function(feature, latlng) {
+                            var p     = feature.properties || {};
+                            var color = p.color      || (featureCount === 0 ? '#ff4757' : '#1e90ff');
+                            var pulse = featureCount === 0;
+                            var label = p.label      || p.name  || p.title || '';
+                            var desc  = p.description|| p.desc  || '';
+                            var mType = p.markerType || '';
+
+                            // First feature → overlay panel content
+                            if (featureCount === 0) {
+                                overlayLabel = label;
+                                overlayDesc  = desc;
+                            }
+
+                            // Add to legend (skip duplicate labels)
+                            if (label) legendItems.push({ color: color, label: label, markerType: mType });
+
+                            featureCount++;
+
+                            // ── Radius circle ──
+                            // Render a semi-transparent filled circle when radiusMeters is set.
+                            // We add it directly to the map here (can't return two layers from
+                            // pointToLayer) so it sits beneath the marker pin.
+                            // Only draw for incident markers — city and ordinary never get a radius ring.
+                            if (p.radiusMeters && p.radiusMeters > 0 && mType !== 'city' && mType !== 'ordinary') {
+                                var weight  = p.weight  || 2;
+                                var opacity = p.opacity != null ? p.opacity : 0.5;
+                                L.circle(latlng, {
+                                    radius:      p.radiusMeters,
+                                    color:       color,
+                                    weight:      weight,
+                                    opacity:     opacity,
+                                    fillColor:   color,
+                                    fillOpacity: Math.min(opacity * 0.35, 0.25),
+                                    dashArray:   (p.dashPattern && p.dashPattern !== '0,0')
+                                                    ? p.dashPattern : null,
+                                    renderer:    renderer
+                                }).addTo(map);
+                            }
+
+                            // Bind popup directly on the marker
+                            var marker = L.marker(latlng, { icon: makeIcon(color, pulse, mType) });
+                            if (label || desc || mType) {
+                                marker.bindPopup(makePopup(label, desc, mType), {
+                                    className: 'dark-popup',
+                                    maxWidth: 280
+                                });
+                            }
+                            return marker;
+                        },
+
+                        // ── Lines, polygons, everything except Points ──
+                        onEachFeature: function(feature, layer) {
+                            var t = feature.geometry.type;
+                            // Points are fully handled in pointToLayer — skip here
+                            if (t === 'Point' || t === 'MultiPoint') return;
+
+                            var p     = feature.properties || {};
+                            var label = p.label      || p.name  || p.title || '';
+                            var desc  = p.description|| p.desc  || '';
+                            var mType = p.markerType || (t.indexOf('Line') >= 0 ? 'route' : 'area');
+                            var color = p.color      || (t.indexOf('Line') >= 0 ? '#ffa502' : '#3E92CC');
+
+                            if (featureCount === 0) {
+                                overlayLabel = label;
+                                overlayDesc  = desc;
+                            }
+                            if (label) legendItems.push({ color: color, label: label, markerType: mType });
+                            featureCount++;
+
+                            // Bind popup on click for lines/polygons
+                            if (label || desc || mType) {
+                                layer.bindPopup(makePopup(label, desc, mType), {
+                                    className: 'dark-popup',
+                                    maxWidth: 280
+                                });
+                            }
+                        }
+
+                    }).addTo(map);
+
+                } catch(e) {
+                    console.error('GeoJSON parse error:', e);
+                }
+            }
+
+            // Fallback — single pin at centre when no GeoJSON
+            if (!hasGeo || featureCount === 0) {
+                var fallbackLabel = storyLocation || storyTitle || 'Event location';
+                var fallbackMarker = L.marker([mapData.centerLat, mapData.centerLng],
+                    { icon: makeIcon('#ff4757', true, 'incident') }).addTo(map);
+                fallbackMarker.bindPopup(makePopup(fallbackLabel, '', ''), {
+                    className: 'dark-popup', maxWidth: 280
+                });
+                legendItems.push({ color: '#ff4757', label: fallbackLabel, markerType: 'incident' });
+                overlayLabel = fallbackLabel;
+                overlayDesc  = storyLocation && storyTitle && storyLocation !== storyTitle
+                    ? storyLocation : '';
+            }
+
+            // ── Build overlay panel ──
+            // Title = first feature's label; no "Story Map" heading
+            var overlayHtml = '<div class="map-overlay">';
+
+            overlayHtml += '<div class="map-overlay-title">'
+                + '<i class="fas fa-map-marked-alt"></i>'
+                + (overlayLabel || 'Article Map')
+                + '</div>';
+
+            if (overlayDesc) {
+                overlayHtml += '<div class="map-overlay-desc">' + overlayDesc + '</div>';
+            } else if (storyLocation && storyLocation !== overlayLabel) {
+                overlayHtml += '<div class="map-overlay-desc">'
+                    + '<i class="fas fa-map-marker-alt" style="margin-right:4px;color:#3E92CC;"></i>'
+                    + storyLocation + '</div>';
+            }
+
+            // Legend — skip the first item since it's already the title
+            var legendToShow = legendItems.slice(1);
+            if (legendToShow.length > 0) {
+                overlayHtml += '<div class="map-legend">';
+                var seen = {};
+                legendToShow.forEach(function(item) {
+                    if (!seen[item.label]) {
+                        seen[item.label] = true;
+                        var dotHtml;
+                        if (item.markerType === 'incident') {
+                            dotHtml = '<div style="'
+                                + 'background:#FF4757;width:13px;height:13px;border-radius:50%;'
+                                + 'border:2px solid white;box-shadow:0 0 5px rgba(255,71,87,0.8);'
+                                + 'display:flex;align-items:center;justify-content:center;'
+                                + 'flex-shrink:0;box-sizing:border-box;">'
+                                + '<span style="color:white;font-size:8px;font-weight:900;'
+                                + 'font-family:sans-serif;line-height:1;">!</span>'
+                                + '</div>';
+                        } else if (item.markerType === 'city') {
+                            dotHtml = '<div style="'
+                                + 'background:#1E90FF;width:7px;height:7px;border-radius:50%;'
+                                + 'border:1px solid white;'
+                                + 'flex-shrink:0;box-sizing:border-box;"></div>';
+                        } else if (item.markerType === 'ordinary') {
+                            dotHtml = '<div style="'
+                                + 'background:#808080;width:8px;height:8px;border-radius:50%;'
+                                + 'border:2px solid white;'
+                                + 'flex-shrink:0;box-sizing:border-box;"></div>';
+                        } else {
+                            // lines, polygons, or legacy colour markers
+                            dotHtml = '<div class="legend-dot" style="background:'
+                                + item.color + ';box-shadow:0 0 6px ' + item.color
+                                + ';border:2px solid white;"></div>';
+                        }
+                        overlayHtml += '<div class="legend-item">'
+                            + dotHtml
+                            + '<span>' + item.label + '</span>'
+                            + '</div>';
+                    }
+                });
+                overlayHtml += '</div>';
+            }
+
+            overlayHtml += '</div>';
+            document.getElementById('storyMapWrapper')
+                     .insertAdjacentHTML('beforeend', overlayHtml);
+
+            // Dismiss loading overlay
+            var loadingOverlay = document.getElementById('mapLoadingOverlay');
+            if (loadingOverlay) {
+                loadingOverlay.classList.add('hidden');
+                setTimeout(function() { loadingOverlay.remove(); }, 450);
+            }
+
+            // Final invalidateSize — overlay injection can shift layout on some browsers
+            setTimeout(function() { map.invalidateSize({ animate: false }); }, 100);
+
+        } // end initStoryMap
+
+        // If there is no hero preview image, lazy-load scripts and boot immediately
+        if (!document.getElementById('mapHeroPreview')) {
+            document.addEventListener('DOMContentLoaded', function() {
+                _loadScriptsSeq([
+                    'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js',
+                    'https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js',
+                    'https://unpkg.com/@("@maplibre")/maplibre-gl-leaflet@0.0.22/leaflet-maplibre-gl.js'
+                ], function() { initStoryMap(); });
+            });
+        }
+        </script>
+        }
+    }
+}
+<script>
+function copyStoryUrl(btn) {
+    var url = window.location.href;
+    function onCopied() {
+        btn.classList.add('copied');
+        btn.innerHTML = '<i class="fas fa-check"></i>';
+        setTimeout(function() {
+            btn.classList.remove('copied');
+            btn.innerHTML = '<i class="fas fa-link"></i>';
+        }, 2500);
+    }
+    if (navigator.clipboard) {
+        navigator.clipboard.writeText(url).then(onCopied).catch(function() {
+            fallbackCopy(url, onCopied);
+        });
+    } else {
+        fallbackCopy(url, onCopied);
+    }
+}
+function fallbackCopy(text, cb) {
+    var ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.cssText = 'position:fixed;opacity:0;top:0;left:0;';
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand('copy'); cb(); } catch(e) {}
+    document.body.removeChild(ta);
+}
+</script>

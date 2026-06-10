@@ -14,6 +14,8 @@ builder.Services.Configure<ServerSettings>(
 builder.Services.AddSingleton(sp =>
     sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<ServerSettings>>().Value);
 
+builder.Services.AddResponseCaching();
+
 var serverSettings =
     builder.Configuration.GetSection(nameof(ServerSettings))
                      .Get<ServerSettings>(); //parse serverSettings from json
@@ -38,11 +40,20 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-app.UseStaticFiles();
+app.UseStaticFiles(new StaticFileOptions
+{
+    OnPrepareResponse = ctx =>
+    {
+        // Cache static files for 1 year 
+        ctx.Context.Response.Headers.CacheControl = "public, max-age=31536000, immutable";
+    }
+});
 
 app.UseRouting();
 
 app.UseAuthorization();
+
+app.UseResponseCaching();
 
 app.MapControllerRoute(
     name: "default",

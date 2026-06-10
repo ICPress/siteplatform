@@ -107,72 +107,81 @@
         </div>
     </footer>
 <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            // Dark Mode — applied to <html> so CSS vars cascade before body renders
-            const html = document.documentElement;
-            const darkModeToggle = document.getElementById('darkModeToggle');
-            let darkMode = localStorage.getItem('darkMode') === 'true';
+    document.addEventListener('DOMContentLoaded', function () {
+        // Dark Mode — applied to <html> so CSS vars cascade before body renders
+        const html = document.documentElement;
+        const darkModeToggle = document.getElementById('darkModeToggle');
+        let darkMode = localStorage.getItem('darkMode') === 'true';
 
-            // Remove no-transition after first paint so subsequent interactions animate
+        // Remove no-transition after first paint so subsequent interactions animate
+        requestAnimationFrame(function() {
             requestAnimationFrame(function() {
-                requestAnimationFrame(function() {
-                    html.classList.remove('no-transition');
-                });
+                html.classList.remove('no-transition');
             });
-
-            // Sync toggle button state (class already applied in <head> inline script)
-            if (darkMode) {
-                darkModeToggle.classList.add('active');
-                darkModeToggle.innerHTML = '<i class="fas fa-sun"></i> Light';
-            }
-
-            darkModeToggle.addEventListener('click', function () {
-                darkMode = !darkMode;
-                requestAnimationFrame(function() {
-                    html.classList.toggle('dark-mode', darkMode);
-                    html.setAttribute('data-theme', darkMode ? 'dark' : 'light');
-                    darkModeToggle.classList.toggle('active', darkMode);
-                    darkModeToggle.innerHTML = darkMode
-                        ? '<i class="fas fa-sun"></i> Light'
-                        : '<i class="fas fa-moon"></i> Dark';
-                    localStorage.setItem('darkMode', darkMode);
-                });
-            });
-
-            // Scroll-responsive header
-            window.addEventListener('scroll', function () {
-                const header = document.getElementById('mainHeader');
-                header.classList.toggle('scrolled', window.scrollY > 50);
-            });
-
-            // Mobile menu
-            const mobileMenuToggle = document.getElementById('mobileMenuToggle');
-            const mainNav = document.getElementById('mainNav');
-            mobileMenuToggle.addEventListener('click', function () {
-                mainNav.classList.toggle('active');
-            });
-
-            // User Menu
-            const userMenuButton = document.getElementById('userMenuButton');
-            const userDropdown = document.getElementById('userDropdown');
-            const userMenuContainer = document.getElementById('userMenuContainer');
-
-            if (userMenuButton) {
-                userMenuButton.addEventListener('click', function (e) {
-                    e.stopPropagation();
-                    userDropdown.classList.toggle('active');
-                });
-
-                document.addEventListener('click', function (e) {
-                    if (userMenuContainer && !userMenuContainer.contains(e.target)) {
-                        userDropdown.classList.remove('active');
-                    }
-                });
-
-                userDropdown.addEventListener('click', function (e) { e.stopPropagation(); });
-            }
         });
-    </script>
+
+        // Sync toggle button state (class already applied in <head> inline script)
+        if (darkMode) {
+            darkModeToggle.classList.add('active');
+            darkModeToggle.innerHTML = '<i class="fas fa-sun"></i> Light';
+        }
+
+        darkModeToggle.addEventListener('click', function () {
+            darkMode = !darkMode;
+            requestAnimationFrame(function() {
+                html.classList.toggle('dark-mode', darkMode);
+                html.setAttribute('data-theme', darkMode ? 'dark' : 'light');
+                darkModeToggle.classList.toggle('active', darkMode);
+                darkModeToggle.innerHTML = darkMode
+                    ? '<i class="fas fa-sun"></i> Light'
+                    : '<i class="fas fa-moon"></i> Dark';
+                localStorage.setItem('darkMode', darkMode);
+            });
+        });
+
+        // Scroll-responsive header 
+        const header = document.getElementById('mainHeader');
+        const THRESHOLD_ADD    = 80;  // add .scrolled when scrolling down past here
+        const THRESHOLD_REMOVE = 20;  // remove .scrolled only once well back at top
+
+        window.addEventListener('scroll', function () {
+            const y = window.scrollY;
+            if (y > THRESHOLD_ADD) {
+                header.classList.add('scrolled');
+            } else if (y < THRESHOLD_REMOVE) {
+                header.classList.remove('scrolled');
+            }
+            // Between 20–80px: do nothing — dead zone absorbs the reflow
+        }, { passive: true });
+
+        // Mobile menu
+        const mobileMenuToggle = document.getElementById('mobileMenuToggle');
+        const mainNav = document.getElementById('mainNav');
+        mobileMenuToggle.addEventListener('click', function () {
+            mainNav.classList.toggle('active');
+        });
+
+        // User Menu
+        const userMenuButton = document.getElementById('userMenuButton');
+        const userDropdown = document.getElementById('userDropdown');
+        const userMenuContainer = document.getElementById('userMenuContainer');
+
+        if (userMenuButton) {
+            userMenuButton.addEventListener('click', function (e) {
+                e.stopPropagation();
+                userDropdown.classList.toggle('active');
+            });
+
+            document.addEventListener('click', function (e) {
+                if (userMenuContainer && !userMenuContainer.contains(e.target)) {
+                    userDropdown.classList.remove('active');
+                }
+            });
+
+            userDropdown.addEventListener('click', function (e) { e.stopPropagation(); });
+        }
+    });
+</script>
     @RenderSection("Scripts", required: false)
 </body>
 </html>

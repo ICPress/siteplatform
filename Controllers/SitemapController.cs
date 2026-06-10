@@ -82,7 +82,7 @@ public class SitemapController : Controller
         var title      = ResolveTitle(article);
         var pubDate    = ParseTimestamp(article.Timestamp);
         var langCode   = string.IsNullOrEmpty(article.LangCode) ? "eng" : article.LangCode;
-        var imageUrl   = LinkUtil.GetDefaultImageLinkFromImageInfoMetadata(article.StylingInfo?.TitleBackgroundImage, smallCDN, bigCDN);
+        var imageUrl   = LinkUtil.GetDefaultImageLinkFromImageInfoMetadata(article.StylingInfo?.TitleBackgroundImage, bigCDN, smallCDN);
 
         var node = new SitemapNode(Url.Action("Index", "Story", new { slugTitle = article.SlugTitle }))
         {

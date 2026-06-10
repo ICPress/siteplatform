@@ -1,0 +1,106 @@
+# robots.txt — ICPress
+# https://icpress.org/robots.txt
+# Last updated: 2026-06-10
+
+# -------------------------------------------------------
+# Allow all well-behaved crawlers full access by default
+# -------------------------------------------------------
+User-agent: *
+Allow: /
+
+# Block low-value or duplicate content
+Disallow: /Account/
+Disallow: /Wallet/
+Disallow: /q/
+
+# Block ASP.NET / MVC internals
+Disallow: /bundles/
+Disallow: /Scripts/
+Disallow: /Content/
+Disallow: /fonts/
+Disallow: /Views/
+Disallow: /App_Data/
+Disallow: /*.axd$
+Disallow: /*.ashx$
+
+# Block query-string noise (pagination variants, sort orders, etc.)
+Disallow: /*?sort=*
+Disallow: /*?page=*
+Disallow: /*?filter=*
+Disallow: /*?ref=*
+Disallow: /*?utm_*
+Disallow: /*?sessionid=*
+Disallow: /*?preview=*
+Disallow: /*?draft=*
+
+# -------------------------------------------------------
+# Google — grant extra crawl budget for rich snippets
+# -------------------------------------------------------
+User-agent: Googlebot
+Allow: /
+Allow: /sitemap
+Disallow: /*.axd$
+
+User-agent: Googlebot-Image
+Allow: /static/
+Allow: /assets/images/
+Disallow: /
+
+# -------------------------------------------------------
+# Bing
+# -------------------------------------------------------
+User-agent: Bingbot
+Allow: /
+Disallow: /*.axd$
+
+# -------------------------------------------------------
+# AI crawlers
+# -------------------------------------------------------
+User-agent: GPTBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: anthropic-ai
+Allow: /
+
+# Blocking training crawlers
+User-agent: CCBot
+Disallow: /
+
+
+
+# -------------------------------------------------------
+# Scrapers and aggressive bots — block all
+# -------------------------------------------------------
+User-agent: AhrefsBot
+Disallow: /
+
+User-agent: SemrushBot
+Disallow: /
+
+User-agent: MJ12bot
+Disallow: /
+
+User-agent: DotBot
+Disallow: /
+
+User-agent: BLEXBot
+Disallow: /
+
+User-agent: PetalBot
+Disallow: /
+
+# -------------------------------------------------------
+# Sitemaps
+# -------------------------------------------------------
+Sitemap: https://icpress.org/sitemap
+
+# -------------------------------------------------------
+# Crawl-delay hint for polite bots
+# -------------------------------------------------------
+Crawl-delay: 2

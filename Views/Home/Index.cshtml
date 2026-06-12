@@ -82,7 +82,7 @@
                             @if (!string.IsNullOrEmpty(hero.ContentText))
                             {
                                 <a href="/s/@hero.SlugTitle" class="article-excerpt-link">
-                                    <p class="article-excerpt">@(hero.ContentText.Length > 200 ? hero.ContentText.Substring(0, 200) + "…" : hero.ContentText)</p>
+                                    <p class="article-excerpt">@(hero.ContentText.Length > 200 ? hero.ContentText.Substring(0, 200).Replace("\0", "") + "…" : hero.ContentText.Replace("\0", ""))</p>
                                 </a>
                             }
                             <div class="article-meta">

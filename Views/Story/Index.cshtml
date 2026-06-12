@@ -25,7 +25,7 @@
 @section MetaTags {
 @* Open Graph + Twitter Card + JSON-LD structured data ── *@
 @{
-    var pageUrl      = $"{Context.Request.Scheme}://{Context.Request.Host}{Context.Request.Path}";
+    var pageUrl      = $"https://{Context.Request.Host}{Context.Request.Path}";
     var ogImage      = heroImageUrls?.Src ?? "https://icpress.org/android-chrome-512x512.png";
     var description  = (!string.IsNullOrEmpty(article?.ContentText))
                            ? (article.ContentText.Length > 200
@@ -39,6 +39,7 @@
 }
 
 @* Open Graph *@
+<meta property="fb:app_id"           content="1536627988038390" />
 <meta property="og:type"             content="article" />
 <meta property="og:title"            content="@(title ?? "ICPress Article")" />
 <meta property="og:description"      content="@description" />
@@ -62,11 +63,11 @@
 }
 
 @* Twitter / X Cards *@
-<meta name="twitter:card"        content="summary_large_image" />
+<meta name="twitter:card"        content="summary" />
 <meta name="twitter:title"       content="@(title ?? "ICPress Article")" />
 <meta name="twitter:description" content="@description" />
 <meta name="twitter:image"       content="@ogImage" />
-<meta name="twitter:site"        content="@@ICPress" />
+<meta name="twitter:site"        content="@@ICPress_org" />
 
 @* Canonical *@
 <link rel="canonical" href="@pageUrl" />
@@ -89,7 +90,7 @@
     "author": {
         "@@type": "Person",
         "name": @Html.Raw(System.Text.Json.JsonSerializer.Serialize(authorName)),
-        "url":  @Html.Raw(System.Text.Json.JsonSerializer.Serialize($"{Context.Request.Scheme}://{Context.Request.Host}/q/u/{authorName}"))
+        "url":  @Html.Raw(System.Text.Json.JsonSerializer.Serialize($"https://{Context.Request.Host}/q/u/{authorName}"))
     },
     "publisher": {
         "@@type": "Organization",

@@ -24,7 +24,6 @@ public class StoryController : Controller
             var api = _serverSettings.PublicApiUrl;
             using var httpClient = new HttpClient();
 
-            // Fetch article and similar articles in parallel
             var articleTask = httpClient.GetFromJsonAsync<StoryPublishedModel>(
                 $"{api}/article/title/{slugTitle}");
             var similarTask = httpClient.GetFromJsonAsync<List<StoryPublishedModel>>(
@@ -38,11 +37,17 @@ public class StoryController : Controller
                 SimilarArticles = similarTask.Result ?? new List<StoryPublishedModel>()
             };
 
+            if (model.Article == null)
+            {
+                Response.StatusCode = StatusCodes.Status404NotFound;
+            }
+
             return View(model);
         }
         catch (Exception ex)
         {
             _logger.LogError("Article Fetch Exception: {0}", ex.Message);
+            Response.StatusCode = StatusCodes.Status500InternalServerError;
             return View(new StoryPageModel());
         }
     }

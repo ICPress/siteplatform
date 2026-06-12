@@ -39,8 +39,7 @@ public class StoryController : Controller
                 var content = await articleResponse.Content.ReadAsStringAsync();
                 if (!string.IsNullOrWhiteSpace(content))
                 {
-                    article = JsonSerializer.Deserialize<StoryPublishedModel>(content,
-                        new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                    article = JsonSerializer.Deserialize<StoryPublishedModel>(content);
                 }
             }
 
@@ -54,7 +53,7 @@ public class StoryController : Controller
             {
                 Response.StatusCode = StatusCodes.Status404NotFound;
                 Response.Headers["Cache-Control"] = "no-store";
-            } else throw new InvalidOperationException($"Article could not be fetched, article: {slugTitle}, reason:{articleResponse.ReasonPhrase}");
+            } else if (model.Article == null) throw new InvalidOperationException($"Article could not be fetched, article: {slugTitle}, reason:{articleResponse.ReasonPhrase}");
 
             return View(model);
         }

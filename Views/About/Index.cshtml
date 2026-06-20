@@ -1,442 +1,506 @@
 @{
-    ViewData["Title"] = "About ICPress — Our Mission & Team";
+    ViewData["Title"] = "About ICPress — Open-Source Publishing Platform";
 }
 
 @section Styles {
 <style>
-    /* ===== PAGE HEADER ===== */
-    .about-page-header {
+    /* ===== ABOUT PAGE ===== */
+
+    .about-header {
         padding: 50px 0 40px;
         background: linear-gradient(135deg, var(--bg-header) 0%, #0d3080 100%);
         color: var(--text-light);
         margin-bottom: 0;
     }
-    .about-page-header .page-title {
+    .about-header .page-title {
         font-size: 2.4rem; margin-bottom: 12px; color: var(--text-light);
     }
-    .about-page-header .page-subtitle {
+    .about-header .page-subtitle {
         font-size: 1.1rem; color: rgba(255,255,255,0.8); max-width: 680px; margin-bottom: 0;
     }
 
-    /* ===== ABOUT CONTAINER ===== */
-    .about-section { padding: 0 0 60px; }
+    /* Layout wrapper */
+    .about-body { padding: 0 0 64px; }
     .about-container {
         display: flex; gap: 40px; align-items: flex-start;
         max-width: 1200px; margin: 0 auto; padding: 40px 15px 0;
     }
 
-    /* ===== WIKI SIDEBAR ===== */
-    .wiki-sidebar { width: 240px; flex-shrink: 0; }
-    .wiki-nav {
-        background: var(--bg-secondary);
-        border-radius: 8px;
-        padding: 20px;
-        box-shadow: 0 4px 12px var(--shadow-color);
-        border-top: 3px solid var(--accent-color);
-        position: sticky;
-        top: 80px;
-    }
-    .wiki-nav-title {
-        font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.8px;
-        font-weight: 700; color: var(--text-tertiary); margin-bottom: 14px;
-    }
-    .wiki-nav-list { list-style: none; padding: 0; margin: 0; }
-    .wiki-nav-item { margin-bottom: 2px; }
+    /* Sidebar — reuses .sidebar-widget pattern but needs sticky + narrower width */
+    .about-sidebar { width: 230px; flex-shrink: 0; }
+    .about-sidebar .sidebar-widget { position: sticky; top: 80px; }
+    .wiki-nav-divider { height: 1px; background: var(--border-color); margin: 10px 0; }
     .wiki-nav-link {
         display: block; padding: 8px 12px; border-radius: 6px;
-        font-size: 0.88rem; color: var(--text-secondary); transition: all 0.2s;
+        font-size: 0.87rem; color: var(--text-secondary); transition: all 0.2s;
+        text-decoration: none;
     }
     .wiki-nav-link:hover, .wiki-nav-link.active {
         background: var(--bg-tertiary); color: var(--accent-color);
     }
 
-    /* ===== WIKI CONTENT ===== */
+    /* Content column */
     .wiki-content { flex: 1; min-width: 0; }
 
+    /* Wiki section card — same shadow/radius as .sidebar-widget but no border-top override here */
     .wiki-section {
-        background: var(--bg-secondary);
-        border-radius: 12px;
-        padding: 32px 36px;
-        margin-bottom: 24px;
+        background: var(--bg-secondary); border-radius: 12px;
+        padding: 32px 36px; margin-bottom: 24px;
         box-shadow: 0 4px 12px var(--shadow-color);
         scroll-margin-top: 80px;
+        border-top: 3px solid var(--accent-color);
     }
+    .wiki-section.oss-section { border-top-color: #38a169; }
 
+    /* Section title — reuses .section-title sizing but as a block element here */
     .wiki-section-title {
-        font-size: 1.6rem; color: var(--text-primary);
+        font-size: 1.5rem; color: var(--text-primary);
         padding-bottom: 12px; margin-bottom: 20px;
         border-bottom: 2px solid var(--accent-color);
         display: inline-block;
     }
+    .wiki-section.oss-section .wiki-section-title { border-bottom-color: #38a169; }
 
-    .wiki-subsection { margin-bottom: 24px; }
+    .wiki-subsection { margin-bottom: 26px; }
+    .wiki-subsection:last-child { margin-bottom: 0; }
     .wiki-subsection-title {
-        font-size: 1.05rem; color: var(--accent-color); margin-bottom: 10px; font-weight: 700;
+        font-size: 1rem; color: var(--accent-color);
+        margin-bottom: 10px; font-weight: 700;
     }
-    .wiki-section p { font-size: 0.97rem; color: var(--text-secondary); }
-    .wiki-section ul { padding-left: 20px; margin-bottom: 1rem; }
-    .wiki-section ul li { margin-bottom: 8px; font-size: 0.95rem; color: var(--text-secondary); }
 
-    /* ===== FOUNDER CARD ===== */
-    .founder-card {
-        display: flex; gap: 24px; align-items: flex-start;
-        padding: 24px; background: var(--bg-primary);
-        border-radius: 10px; margin-top: 20px;
+    /* Definition callout */
+    .definition-block {
+        background: var(--bg-primary); border-radius: 8px;
+        padding: 18px 22px; margin-bottom: 18px;
         border-left: 4px solid var(--accent-color);
     }
-    .founder-avatar {
-        width: 72px; height: 72px; border-radius: 50%; flex-shrink: 0;
-        background: linear-gradient(135deg, var(--accent-color), #0A2463);
-        display: flex; align-items: center; justify-content: center;
-        font-size: 28px; color: white; font-weight: 700;
+    .definition-block p {
+        font-size: 1.05rem !important; font-weight: 500;
+        color: var(--text-primary) !important; margin: 0 !important; line-height: 1.6;
     }
-    .founder-name { font-size: 1.1rem; font-weight: 700; color: var(--text-primary); margin-bottom: 4px; }
-    .founder-role { font-size: 0.82rem; color: var(--accent-color); font-weight: 600; margin-bottom: 10px; }
-    .founder-bio { font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 0; }
 
-    /* ===== VALUES GRID ===== */
-    .values-grid {
-        display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 20px;
-    }
-    .value-card {
-        background: var(--bg-primary); border-radius: 10px; padding: 20px;
+    /* Audience grid */
+    .audience-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 16px; margin-top: 20px; }
+    .audience-card {
+        background: var(--bg-primary); border-radius: 10px; padding: 20px 22px;
         border-top: 3px solid var(--accent-color);
-        transition: transform 0.2s, box-shadow 0.2s;
     }
-    .value-card:hover { transform: translateY(-3px); box-shadow: 0 6px 16px var(--shadow-color); }
+    .audience-card-label {
+        font-size: 0.7rem; font-weight: 700; text-transform: uppercase;
+        letter-spacing: 0.8px; color: var(--accent-color); margin-bottom: 8px;
+    }
+    .audience-card h4 { font-size: 0.97rem; margin-bottom: 8px; }
+    .audience-card p { font-size: 0.87rem !important; margin: 0 !important; }
+
+    /* Values grid — same pattern as .article-grid but 3 col */
+    .values-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 14px; }
+    .value-card {
+        background: var(--bg-primary); border-radius: 10px; padding: 18px 20px;
+        border-top: 3px solid var(--accent-color);
+    }
     .value-icon {
-        width: 44px; height: 44px; border-radius: 10px;
+        width: 38px; height: 38px; border-radius: 8px;
         background: var(--bg-tertiary); color: var(--accent-color);
         display: flex; align-items: center; justify-content: center;
-        font-size: 18px; margin-bottom: 14px;
+        font-size: 16px; margin-bottom: 12px;
     }
-    .value-title { font-size: 0.95rem; font-weight: 700; color: var(--text-primary); margin-bottom: 8px; }
-    .value-card p { font-size: 0.85rem; margin-bottom: 0; }
+    .value-title { font-size: 0.92rem; font-weight: 700; color: var(--text-primary); margin-bottom: 6px; }
+    .value-card p { font-size: 0.84rem !important; margin: 0 !important; }
 
-    /* ===== STATS GRID ===== */
-    .stats-grid {
-        display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-top: 20px;
+    /* Infrastructure grid */
+    .infra-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 14px; margin-top: 16px; }
+    .infra-card { background: var(--bg-primary); border-radius: 8px; padding: 18px 20px; }
+    .infra-card-title {
+        font-size: 0.9rem; font-weight: 700; color: var(--text-primary);
+        margin-bottom: 6px; display: flex; align-items: center; gap: 8px;
     }
-    .stat-card {
-        background: var(--bg-primary); border-radius: 10px; padding: 24px 16px;
-        text-align: center; border-bottom: 3px solid var(--accent-color);
-    }
-    .stat-number { font-size: 2rem; font-weight: 800; color: var(--accent-color); margin-bottom: 6px; }
-    .stat-label { font-size: 0.82rem; color: var(--text-secondary); font-weight: 500; }
+    .infra-card-title i { color: var(--accent-color); }
+    .infra-card p { font-size: 0.85rem !important; margin: 0 !important; }
 
-    /* ===== JOIN US — journalist recruitment ===== */
-    .join-us-card {
+    /* Open source block */
+    .oss-block {
+        border: 1px solid #38a169; border-radius: 10px;
+        padding: 20px 22px; margin-top: 18px; background: rgba(56,161,105,0.04);
+    }
+    .oss-block-title {
+        font-size: 0.97rem; font-weight: 700; color: #38a169;
+        margin-bottom: 10px; display: flex; align-items: center; gap: 8px;
+    }
+    .github-btn {
+        display: inline-flex; align-items: center; gap: 9px;
+        padding: 10px 20px; background: #24292e; color: white;
+        border-radius: 6px; font-weight: 600; font-size: 0.88rem;
+        text-decoration: none; transition: all 0.2s; margin-top: 12px;
+    }
+    .github-btn:hover { background: #1a1e22; color: white; }
+
+    /* Rewards dark card */
+    .rewards-card {
         background: linear-gradient(135deg, #0A2463 0%, #1a4080 100%);
-        border-radius: 12px;
-        padding: 36px;
-        color: white;
-        margin-top: 20px;
-        position: relative;
-        overflow: hidden;
+        border-radius: 12px; padding: 28px 32px; color: white; margin-top: 16px;
+        position: relative; overflow: hidden;
     }
-    .join-us-card::before {
-        content: '';
-        position: absolute; top: -40px; right: -40px;
-        width: 200px; height: 200px;
-        background: rgba(62,146,204,0.15); border-radius: 50%;
+    .rewards-card::before {
+        content: ''; position: absolute; top: -50px; right: -50px;
+        width: 200px; height: 200px; background: rgba(62,146,204,0.12); border-radius: 50%;
     }
-    .join-us-title { font-size: 1.5rem; color: white; margin-bottom: 12px; }
-    .join-us-subtitle { font-size: 0.95rem; color: rgba(255,255,255,0.85); margin-bottom: 20px; line-height: 1.7; }
-    .join-us-perks { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 24px; }
-    .perk-chip {
-        display: inline-flex; align-items: center; gap: 7px;
-        padding: 7px 14px; background: rgba(255,255,255,0.1);
-        border: 1px solid rgba(255,255,255,0.2); border-radius: 20px;
-        font-size: 0.82rem; color: white; font-weight: 500;
+    .rewards-card h3 { font-size: 1.1rem; color: white; margin-bottom: 10px; }
+    .rewards-card p { color: rgba(255,255,255,0.85) !important; font-size: 0.9rem !important; line-height: 1.7; }
+    .rewards-detail-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 12px; margin-top: 18px; }
+    .rewards-detail {
+        padding: 14px 16px; background: rgba(255,255,255,0.08);
+        border-radius: 8px; border-left: 3px solid rgba(88,214,141,0.7);
     }
-    .perk-chip i { color: #58d68d; }
-    .join-us-cta {
-        display: inline-block; padding: 12px 28px;
-        background: var(--accent-color); color: white;
-        border-radius: 6px; font-weight: 600; font-size: 0.95rem;
-        transition: all 0.2s;
+    .rewards-detail-title {
+        font-size: 0.76rem; font-weight: 700; text-transform: uppercase;
+        letter-spacing: 0.5px; color: #58d68d; margin-bottom: 6px;
     }
-    .join-us-cta:hover {
-        background: #2A7CB0; color: white; transform: translateY(-2px);
-        box-shadow: 0 6px 16px rgba(62,146,204,0.4);
-    }
-    .compensation-note {
-        margin-top: 20px; padding: 16px; background: rgba(255,255,255,0.08);
-        border-radius: 8px; border-left: 3px solid #58d68d;
-        font-size: 0.85rem; color: rgba(255,255,255,0.9); line-height: 1.6;
-    }
-    .compensation-note strong { color: #58d68d; }
+    .rewards-detail p { font-size: 0.84rem !important; margin: 0 !important; color: rgba(255,255,255,0.8) !important; }
 
-    /* ===== TIMELINE ===== */
-    .timeline { position: relative; padding-left: 30px; margin-top: 20px; }
+    /* Contribute block */
+    .contribute-block {
+        background: var(--bg-primary); border-radius: 10px;
+        padding: 22px 24px; margin-top: 18px; border-top: 3px solid var(--accent-color);
+    }
+    .contribute-block h4 { font-size: 1rem; font-weight: 700; margin-bottom: 8px; }
+    /* Perks reuse .tag-cloud + .tag from style.css */
+    .contribute-cta {
+        display: inline-block; padding: 11px 24px;
+        background: var(--accent-color); color: white;
+        border-radius: 6px; font-weight: 600; font-size: 0.9rem;
+        text-decoration: none; transition: all 0.2s;
+    }
+    .contribute-cta:hover { background: var(--accent-hover); color: white; }
+
+    /* Timeline */
+    .timeline { position: relative; padding-left: 28px; margin-top: 18px; }
     .timeline::before {
-        content: ''; position: absolute; left: 6px; top: 0; bottom: 0;
+        content: ''; position: absolute; left: 5px; top: 0; bottom: 0;
         width: 2px; background: var(--border-color);
     }
-    .timeline-item { position: relative; margin-bottom: 28px; }
+    .timeline-item { position: relative; margin-bottom: 26px; }
+    .timeline-item:last-child { margin-bottom: 0; }
     .timeline-marker {
-        position: absolute; left: -27px; top: 4px;
-        width: 14px; height: 14px; border-radius: 50%;
+        position: absolute; left: -25px; top: 4px;
+        width: 12px; height: 12px; border-radius: 50%;
         background: var(--accent-color); border: 2px solid var(--bg-secondary);
         box-shadow: 0 0 0 3px rgba(62,146,204,0.2);
     }
-    .timeline-year { font-size: 0.78rem; font-weight: 700; color: var(--accent-color); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
-    .timeline-content h4 { font-size: 0.95rem; color: var(--text-primary); margin-bottom: 4px; }
-    .timeline-content p  { font-size: 0.88rem; margin-bottom: 0; }
+    .timeline-year {
+        font-size: 0.75rem; font-weight: 700; color: var(--accent-color);
+        margin-bottom: 3px; text-transform: uppercase; letter-spacing: 0.5px;
+    }
+    .timeline-content h4 { font-size: 0.93rem; margin-bottom: 4px; }
+    .timeline-content p  { font-size: 0.87rem !important; margin: 0 !important; }
 
+    /* Founder card — reuses .author-widget layout from style.css */
+    .founder-card {
+        display: flex; gap: 22px; align-items: flex-start;
+        padding: 22px; background: var(--bg-primary);
+        border-radius: 10px; margin-top: 18px; border-left: 4px solid var(--accent-color);
+    }
+    .founder-avatar {
+        width: 64px; height: 64px; border-radius: 50%; flex-shrink: 0;
+        background: linear-gradient(135deg, var(--accent-color), #0A2463);
+        display: flex; align-items: center; justify-content: center;
+        font-size: 24px; color: white; font-weight: 700;
+    }
+    .founder-name { font-size: 1.05rem; font-weight: 700; margin-bottom: 3px; }
+    .founder-role { font-size: 0.8rem; color: var(--accent-color); font-weight: 600; margin-bottom: 8px; }
+    .founder-bio { font-size: 0.89rem; color: var(--text-secondary); margin: 0; line-height: 1.65; }
+
+    /* ===== RESPONSIVE ===== */
     @@media (max-width: 992px) {
         .about-container { flex-direction: column; }
-        .wiki-sidebar { width: 100%; }
-        .wiki-nav { position: static; }
-        .values-grid { grid-template-columns: repeat(2, 1fr); }
-        .stats-grid  { grid-template-columns: repeat(2, 1fr); }
+        .about-sidebar { width: 100%; }
+        .about-sidebar .sidebar-widget { position: static; }
+        .audience-grid { grid-template-columns: 1fr; }
+        .values-grid { grid-template-columns: repeat(2,1fr); }
+        .infra-grid { grid-template-columns: 1fr; }
+        .rewards-detail-grid { grid-template-columns: 1fr; }
     }
     @@media (max-width: 600px) {
         .wiki-section { padding: 20px; }
         .values-grid { grid-template-columns: 1fr; }
-        .stats-grid  { grid-template-columns: repeat(2, 1fr); }
         .founder-card { flex-direction: column; }
+        .rewards-card { padding: 22px; }
     }
 </style>
 }
 
-<section class="about-page-header">
+<section class="about-header">
     <div class="container">
         <h1 class="page-title">About ICPress</h1>
-        <p class="page-subtitle">Empowering free speech and access to crucial information — for everyone, everywhere, powered by a global community of journalists.</p>
+        <p class="page-subtitle">Open-source, peer-reviewed publishing platform for independent journalism and evidence-based analysis</p>
     </div>
 </section>
 
-<section class="about-section">
+<section class="about-body">
     <div class="about-container">
 
-        @* Wiki sidebar nav *@
-        <aside class="wiki-sidebar">
-            <nav class="wiki-nav">
-                <div class="wiki-nav-title">Contents</div>
-                <ul class="wiki-nav-list">
-                    <li class="wiki-nav-item"><a href="#open-source"   class="wiki-nav-link"><i class="fab fa-github" style="margin-right:5px;"></i>Open Source</a></li>
-                    <li class="wiki-nav-item"><a href="#our-story"    class="wiki-nav-link active">Our Story</a></li>
-                    <li class="wiki-nav-item"><a href="#mission"      class="wiki-nav-link">Mission &amp; Vision</a></li>
-                    <li class="wiki-nav-item"><a href="#our-values"   class="wiki-nav-link">Our Values</a></li>
-@*                     <li class="wiki-nav-item"><a href="#company-stats" class="wiki-nav-link">Platform Stats</a></li> *@
-                    <li class="wiki-nav-item"><a href="#our-history"  class="wiki-nav-link">History</a></li>
-                    <li class="wiki-nav-item"><a href="#join-us"      class="wiki-nav-link">Join Our Team</a></li>
-                    <li class="wiki-nav-item"><a href="#technology"   class="wiki-nav-link">Technology</a></li>
+        @* Sidebar — uses existing .sidebar-widget + .widget-title from style.css *@
+        <aside class="about-sidebar">
+            <div class="sidebar-widget">
+                <div class="widget-title">Contents</div>
+                <ul class="wiki-nav-list" style="list-style:none;padding:0;margin:0;">
+                    <li><a href="#what-is-icpress" class="wiki-nav-link active">What is ICPress</a></li>
+                    <li><a href="#who-its-for"      class="wiki-nav-link">Who It's For</a></li>
+                    <li><a href="#peer-review"      class="wiki-nav-link">Peer Review</a></li>
+                    <li><a href="#publishing-infra" class="wiki-nav-link">Publishing Infrastructure</a></li>
+                    <li><a href="#open-source"      class="wiki-nav-link"><i class="fab fa-github" style="margin-right:5px;color:#38a169;"></i>Open Source</a></li>
+                    <li class="wiki-nav-divider"></li>
+                    <li><a href="#our-story"        class="wiki-nav-link">Our Story</a></li>
+                    <li><a href="#mission-values"   class="wiki-nav-link">Mission &amp; Values</a></li>
+                    <li><a href="#history"          class="wiki-nav-link">History</a></li>
+                    <li class="wiki-nav-divider"></li>
+                    <li><a href="#contribute"       class="wiki-nav-link">Contribute</a></li>
+                    <li><a href="#rewards"          class="wiki-nav-link">Rewards &amp; Governance</a></li>
                 </ul>
-            </nav>
+            </div>
         </aside>
 
-        @* Wiki content *@
         <main class="wiki-content">
 
-            @* Open Source *@
-            <section id="open-source" class="wiki-section" style="border-top: 3px solid #38a169;">
-                <h2 class="wiki-section-title" style="border-bottom-color:#38a169;">
-                    <i class="fab fa-github" style="margin-right:10px; color:#38a169;"></i>Fully Open Source
-                </h2>
-                <div class="wiki-subsection">
-                    <p>ICPress is <strong>fully open source</strong>. We are deeply committed to transparency, community contribution, and the freedom to self-host. Anyone can read our code, propose improvements, report issues, or fork the project and run their own instance of ICPress on their own infrastructure.</p>
-                    <p>We believe that a platform committed to free speech should itself be open — so no single organisation can ever control or censor it.</p>
-                    <a href="https://github.com/ICPress" target="_blank" rel="noopener noreferrer"
-                       style="display:inline-flex;align-items:center;gap:10px;padding:11px 22px;background:#24292e;color:white;border-radius:6px;font-weight:600;font-size:0.9rem;text-decoration:none;transition:all 0.2s;margin-bottom:20px;">
-                        <i class="fab fa-github" style="font-size:1.1rem;"></i> View on GitHub — ICPress
-                    </a>
+            @* ── What is ICPress ── *@
+            <section id="what-is-icpress" class="wiki-section">
+                <h2 class="wiki-section-title">What is ICPress</h2>
+                <div class="definition-block">
+                    <p>ICPress is an open-source, peer-reviewed publishing platform for independent journalism and evidence-based analysis, where articles are reviewed by experienced contributors before publication to improve accuracy, sourcing, and clarity.</p>
                 </div>
+                <p>ICPress is operated by <strong>StoryPop AB</strong>, registered in Sweden. The codebase is publicly available and licensed for self-hosting, meaning no single organisation controls the infrastructure.</p>
                 <div class="wiki-subsection">
-                    <h3 class="wiki-subsection-title">Self-Hosting ICPress</h3>
-                    <p>Want to run your own ICPress server for your community, newsroom, or country? Download the repository, follow the setup guide, and spin up your own independent instance. Full documentation is available in the GitHub repo.</p>
-                    <ul>
-                        <li>Clone the repo from <a href="https://github.com/ICPress" target="_blank" rel="noopener noreferrer" style="color:var(--accent-color);">github.com/ICPress</a></li>
-                        <li>Follow the server setup guide in the README</li>
-                        <li>Configure your own CDN, database, and API endpoints via <code style="background:var(--bg-tertiary);padding:2px 6px;border-radius:4px;font-size:0.85rem;">appsettings.json</code></li>
-                        <li>Deploy on any Linux server, container, or cloud provider</li>
-                    </ul>
-                    <p>Contributions are welcome via pull requests. Whether you're fixing a bug, adding a feature, or translating the UI — every contribution matters.</p>
-                </div>
-                <div class="wiki-subsection">
-                    <h3 class="wiki-subsection-title">Language Versions</h3>
-                    <p>ICPress currently operates its main platform in English. We are actively working toward hosting individual language versions of ICPress so that communities everywhere can have a local-language home for their journalism. If you're interested in contributing to a localisation or hosting a language version, reach out via GitHub.</p>
+                    <h3 class="wiki-subsection-title">How publishing works</h3>
+                    <p>Contributors submit articles, optionally using AI assistance for drafting and structure. Each article enters a peer review process where experienced contributors evaluate it based on published editorial criteria. Approved articles are published with full authorship attribution.</p>
                 </div>
             </section>
 
-            @* Our Story *@
+            @* ── Who It's For ── *@
+            <section id="who-its-for" class="wiki-section">
+                <h2 class="wiki-section-title">Who It's For</h2>
+                <p>ICPress is designed for four distinct audiences. If you recognise yourself in one of these, this platform was built with you in mind.</p>
+                <div class="audience-grid">
+                    <div class="audience-card">
+                        <div class="audience-card-label"><i class="fas fa-newspaper" style="margin-right:5px;"></i>Readers</div>
+                        <h4>Access analysis you can verify</h4>
+                        <p>All published articles have passed peer review based on accuracy, sourcing, and clarity criteria. Source links are cited so you can check the reporting yourself. No paywalls on published content.</p>
+                    </div>
+                    <div class="audience-card">
+                        <div class="audience-card-label"><i class="fas fa-pen-nib" style="margin-right:5px;"></i>Contributors</div>
+                        <h4>Publish with structure and recognition</h4>
+                        <p>Write about what you know. The AI assistant helps with structure and clarity; peer review gives your work editorial credibility. Active contributors are eligible for equity in the platform.</p>
+                    </div>
+                    <div class="audience-card">
+                        <div class="audience-card-label"><i class="fas fa-id-card" style="margin-right:5px;"></i>Journalists</div>
+                        <h4>Independent publishing with editorial backing</h4>
+                        <p>Publish independently without a newsroom. The peer review pipeline provides editorial oversight. You keep authorship and attribution for everything you write.</p>
+                    </div>
+                    <div class="audience-card">
+                        <div class="audience-card-label"><i class="fas fa-code" style="margin-right:5px;"></i>Developers</div>
+                        <h4>Open infrastructure to build on or self-host</h4>
+                        <p>The full codebase is on GitHub. Fork it, deploy your own instance, extend the API, or contribute back. Full self-hosting documentation is in the repository.</p>
+                    </div>
+                </div>
+            </section>
+
+            @* ── Peer Review ── *@
+            <section id="peer-review" class="wiki-section">
+                <h2 class="wiki-section-title">Peer Review</h2>
+                <p>Every article is reviewed by experienced contributors — people who have already published and had work approved on the platform — before it goes live. Reviews assess three things: <strong>accuracy</strong> (claims supported by cited sources), <strong>sourcing</strong> (reliable references cited), and <strong>clarity</strong> (reporting clearly distinguished from opinion).</p>
+                <p>The outcome is one of three: approved for publication, returned to the contributor with feedback for revision, or declined with a written reason. Reviewer comments are visible to the contributor throughout.</p>
+            </section>
+
+            @* ── Publishing Infrastructure ── *@
+            <section id="publishing-infra" class="wiki-section">
+                <h2 class="wiki-section-title">Publishing Infrastructure</h2>
+                <p>ICPress is built around a mobile-first workflow. Contributors can write, edit, and submit articles entirely from their phone. The platform provides several integrated tools.</p>
+                <div class="infra-grid">
+                    <div class="infra-card">
+                        <div class="infra-card-title"><i class="fas fa-robot"></i> AI Writing Assistant</div>
+                        <p>Helps contributors structure articles and improve clarity using natural language prompts. The assistant is a drafting aid — it does not replace reporting or fact-checking, which remain the contributor's responsibility.</p>
+                    </div>
+                    <div class="infra-card">
+                        <div class="infra-card-title"><i class="fas fa-map-marked-alt"></i> Interactive Article Maps</div>
+                        <p>Leaflet-powered geographic maps can be attached directly to articles, with GeoJSON support for location-based and event coverage.</p>
+                    </div>
+                    <div class="infra-card">
+                        <div class="infra-card-title"><i class="fas fa-link"></i> Source Verification</div>
+                        <p>Contributors cite and link sources within the article. Readers can inspect every source directly from the published page.</p>
+                    </div>
+                    <div class="infra-card">
+                        <div class="infra-card-title"><i class="fas fa-tasks"></i> Peer Review Pipeline</div>
+                        <p>The structured review queue, reviewer assignment, and feedback system are built into the platform — no external tools required.</p>
+                    </div>
+                </div>
+            </section>
+
+            @* ── Open Source ── *@
+            <section id="open-source" class="wiki-section oss-section">
+                <h2 class="wiki-section-title">
+                    <i class="fab fa-github" style="margin-right:8px;color:#38a169;"></i>Open Source
+                </h2>
+                <p>ICPress is fully open source and available on GitHub. The codebase can be inspected, modified, or self-hosted under its license. Developers can contribute via issues or pull requests.</p>
+                <div class="oss-block">
+                    <div class="oss-block-title"><i class="fab fa-github"></i>github.com/ICPress</div>
+                    <p>The repository includes the full application source, a self-hosting setup guide, and API documentation. ICPress can be deployed on any Linux server, container environment, or cloud provider. Configuration is managed via <code style="background:var(--bg-tertiary);padding:2px 6px;border-radius:4px;font-size:0.84rem;">appsettings.json</code>.</p>
+                    <a href="https://github.com/ICPress" target="_blank" rel="noopener noreferrer" class="github-btn">
+                        <i class="fab fa-github"></i> View on GitHub
+                    </a>
+                </div>
+                <div class="wiki-subsection" style="margin-top:22px;">
+                    <h3 class="wiki-subsection-title">Language versions</h3>
+                    <p>The main ICPress platform operates in English. We are working toward community-hosted language versions so local journalism communities can run ICPress in their own language. If you are interested in contributing a localisation or hosting a regional instance, open an issue or discussion on GitHub.</p>
+                </div>
+            </section>
+
+            @* ── Our Story ── *@
             <section id="our-story" class="wiki-section">
                 <h2 class="wiki-section-title">Our Story</h2>
+                <p>ICPress was created by <strong>Senad Matuh Delic</strong> out of a recognition that important information often stays within close circles — shared among specialists, insiders, or privileged networks rather than the public it concerns. The tools for producing credible journalism — editorial process, sourcing standards, structured review — have historically been available only to established media organisations.</p>
+                <p>The platform is operated by <strong>StoryPop AB</strong>, registered in Sweden. Development began in 2022, with an initial social media beta launching on Android in 2023. In 2026, the platform pivoted to its current form as a structured, peer-reviewed news publishing platform.</p>
                 <div class="wiki-subsection">
-                    <h3 class="wiki-subsection-title">Why ICPress Was Created</h3>
-                    <p>ICPress was created by <strong>Senad Matuh Delic</strong> out of a deep conviction that humanity cannot flourish without broad access to information. In an age where news ages within hours, too much critical knowledge remains trapped within close circles — shared among a privileged few rather than the public who need it most.</p>
-                    <p>The platform is operated by <strong>StoryPop AB</strong>, a company registered in Sweden.</p>
-                    <p>ICPress is an open-source publishing platform operated as a for-profit media company with cooperative-style contributor ownership. Anyone can report, investigate, and publish. Contributors earn platform rewards based on the reach and impact of their work, helping align the growth of the platform with the people creating its content.</p>
-                    <p>Unlike traditional media companies, ICPress is designed to share long-term value with contributors. A significant portion of the company's reward structure is reserved for community participation through <strong>Stakeholder Tokens (SSTK)</strong>, which are distributed to contributors on the platform.</p>
-                    <p>The platform combines open participation with a conventional corporate structure, allowing both contributors and outside investors to participate in the company's future. This hybrid model aims to balance independent publishing, sustainable growth, and long-term contributor incentives.</p>
-                    <p>Mechanisms for governance, distributions, and future equity participation are evolving over time, but the foundational contributor reward structure is already defined in the company charter and related governing agreements.</p>
-                </div>
-                <div class="wiki-subsection">
-                    <h3 class="wiki-subsection-title">The Founder</h3>
+                    <h3 class="wiki-subsection-title">Founder</h3>
                     <div class="founder-card">
                         <div class="founder-avatar">S</div>
                         <div>
                             <div class="founder-name">Senad Matuh Delic</div>
                             <div class="founder-role">Founder &amp; CEO</div>
-                            <p class="founder-bio">Senad built ICPress with the belief that information in the modern world ages fast and is often siloed within close circles, he set out to create a platform where anyone can create and share professional news articles — with the help of AI and peer review — making high-quality journalism truly accessible to all.</p>
+                            <p class="founder-bio">Senad built ICPress to bring editorial structure and peer review to independent journalism — providing the tools and process previously only available inside traditional newsrooms, and making them accessible to any contributor with a story to tell.</p>
                         </div>
                     </div>
                 </div>
             </section>
 
-            @* Mission & Vision *@
-            <section id="mission" class="wiki-section">
-                <h2 class="wiki-section-title">Mission &amp; Vision</h2>
+            @* ── Mission & Values ── *@
+            <section id="mission-values" class="wiki-section">
+                <h2 class="wiki-section-title">Mission &amp; Values</h2>
                 <div class="wiki-subsection">
-                    <h3 class="wiki-subsection-title">Our Mission</h3>
-                    <p>To power and encourage free speech and good access to crucial information for everyone — by democratising the tools of professional journalism and putting them in the hands of people all over the world.</p>
-                    <p>We believe that every person has articles worth writing and information worth sharing. ICPress provides the platform, the AI tools, and the peer-review process to help anyone produce and publish credible, well-sourced articles.</p>
+                    <h3 class="wiki-subsection-title">Mission</h3>
+                    <p>To provide open publishing infrastructure that makes credible, peer-reviewed journalism accessible to any contributor — regardless of geography, institution, or background.</p>
                 </div>
                 <div class="wiki-subsection">
-                    <h3 class="wiki-subsection-title">Our Vision</h3>
-                    <p>A world where information is not gatekept — where a nurse in Nairobi, an engineer in Bogotá, or a student in Sarajevo can report on what matters in their community and reach a global audience instantly.</p>
-                    <p>We are building the world's most open, credible, and rewarding platform for citizen journalism — one where quality is incentivised, free speech is protected, and the free flow of information strengthens society everywhere.</p>
+                    <h3 class="wiki-subsection-title">Vision</h3>
+                    <p>A world where the tools of credible journalism — structured editorial process, source verification, peer review — are not exclusive to established organisations, but available to anyone with reporting to do.</p>
                 </div>
-            </section>
-
-            @* Our Values *@
-            <section id="our-values" class="wiki-section">
-                <h2 class="wiki-section-title">Our Values</h2>
                 <div class="values-grid">
                     <div class="value-card">
-                        <div class="value-icon"><i class="fas fa-fist-raised"></i></div>
-                        <div class="value-title">Free Speech</div>
-                        <p>We protect the right to report and share information freely, subject only to accuracy and ethics — not political convenience.</p>
+                        <div class="value-icon"><i class="fas fa-shield-alt"></i></div>
+                        <div class="value-title">Editorial Independence</div>
+                        <p>Editorial decisions are made by the contributor and review community, not by advertisers or platform owners.</p>
+                    </div>
+                    <div class="value-card">
+                        <div class="value-icon"><i class="fas fa-eye"></i></div>
+                        <div class="value-title">Transparency</div>
+                        <p>The codebase is public. Review criteria are published. Source links are visible to every reader.</p>
                     </div>
                     <div class="value-card">
                         <div class="value-icon"><i class="fas fa-globe"></i></div>
-                        <div class="value-title">Global Access</div>
-                        <p>Crucial information should reach everyone. We build for the whole world, not just English-speaking markets.</p>
-                    </div>
-                    <div class="value-card">
-                        <div class="value-icon"><i class="fas fa-shield-alt"></i></div>
-                        <div class="value-title">Accuracy &amp; Trust</div>
-                        <p>Peer review and source verification are built into the platform so readers can trust what they read.</p>
+                        <div class="value-title">Access</div>
+                        <p>Published content is freely readable. Self-hosting is documented and supported for communities anywhere.</p>
                     </div>
                     <div class="value-card">
                         <div class="value-icon"><i class="fas fa-robot"></i></div>
-                        <div class="value-title">AI-Assisted Journalism</div>
-                        <p>We use AI to help contributors write better articles — not to replace human insight, but to amplify it.</p>
+                        <div class="value-title">AI as a Tool</div>
+                        <p>AI assists with writing and structure. Reporting, sourcing, and editorial judgment remain human responsibilities.</p>
                     </div>
                     <div class="value-card">
                         <div class="value-icon"><i class="fas fa-coins"></i></div>
-                        <div class="value-title">Fair Rewards</div>
-                        <p>Contributors share in the value they create. Our stock compensation model means every journalist has a stake in the platform's success.</p>
+                        <div class="value-title">Contributor Ownership</div>
+                        <p>Active contributors are eligible for equity in the platform. Those who build the community have a stake in it.</p>
                     </div>
                     <div class="value-card">
-                        <div class="value-icon"><i class="fas fa-landmark"></i></div>
-                        <div class="value-title">Knowledge Foundation</div>
-                        <p>Access to information is the foundation of a functioning society. Everything we build serves that principle.</p>
+                        <div class="value-icon"><i class="fas fa-balance-scale"></i></div>
+                        <div class="value-title">Accuracy First</div>
+                        <p>Peer review ensures what is published is well-sourced and verifiable, not just timely or popular.</p>
                     </div>
                 </div>
             </section>
 
-            @* Platform Stats *@
-@*             <section id="company-stats" class="wiki-section">
-                <h2 class="wiki-section-title">Platform Stats</h2>
-                <p>ICPress is growing rapidly as contributors and readers around the world join our mission.</p>
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <div class="stat-number">150+</div>
-                        <div class="stat-label">Countries Reached</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-number">10K+</div>
-                        <div class="stat-label">Articles Published</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-number"><i class="fab fa-github" style="font-size:1.6rem;"></i></div>
-                        <div class="stat-label">Fully Open Source</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-number">24/7</div>
-                        <div class="stat-label">Live Coverage</div>
-                    </div>
-                </div>
-            </section> *@
-
-            @* History *@
-            <section id="our-history" class="wiki-section">
+            @* ── History ── *@
+            <section id="history" class="wiki-section">
                 <h2 class="wiki-section-title">History</h2>
                 <div class="timeline">
                     <div class="timeline-item">
                         <div class="timeline-marker"></div>
                         <div class="timeline-year">2022</div>
                         <div class="timeline-content">
-                            <h4>Concept &amp; Foundation</h4>
-                            <p>Senad Matuh Delic begins development of StoryPop that will become ICPress, driven by the conviction that access to information is a human right, not a privilege.</p>
+                            <h4>Concept &amp; Development</h4>
+                            <p>Senad Matuh Delic begins building StoryPop — the platform that will become ICPress — focused on providing structured publishing tools to independent contributors.</p>
                         </div>
                     </div>
                     <div class="timeline-item">
                         <div class="timeline-marker"></div>
                         <div class="timeline-year">2023</div>
                         <div class="timeline-content">
-                            <h4>Social Media Beta Launch</h4>
-                            <p>StoryPop launches in beta on Android as a social media platform. The first contributors begin publishing articles.</p>
+                            <h4>Android Beta Launch</h4>
+                            <p>StoryPop launches in beta on Android as a social media publishing platform. First contributors begin using the platform.</p>
                         </div>
                     </div>
                     <div class="timeline-item">
                         <div class="timeline-marker"></div>
                         <div class="timeline-year">2024</div>
                         <div class="timeline-content">
-                            <h4>Stock Compensation Programme</h4>
-                            <p>StoryPop prepares its contributor equity programme — giving contributors a real ownership stake in the platform they help build.</p>
+                            <h4>Contributor Equity Programme</h4>
+                            <p>The Stakeholder Token (SSTK) contributor equity structure is defined in the company charter, establishing a framework for long-term contributor ownership.</p>
                         </div>
                     </div>
                     <div class="timeline-item">
                         <div class="timeline-marker"></div>
                         <div class="timeline-year">2026 →</div>
                         <div class="timeline-content">
-                            <h4>News Platform Launch</h4>
-                            <p>Pivoting and launching ICPress as a news platform, expanding AI tools, and building towards a world where everyone can access — and create — trusted news.</p>
+                            <h4>ICPress News Platform Launch</h4>
+                            <p>Platform pivots to peer-reviewed news publishing under the ICPress name, with expanded AI tools and structured editorial workflow.</p>
                         </div>
                     </div>
                 </div>
             </section>
 
-            @* Join Us *@
-            <section id="join-us" class="wiki-section">
-                <h2 class="wiki-section-title">Join Our Global Team</h2>
-                <p>ICPress is currently in <strong>open beta</strong> — which means <strong>everyone is welcome to submit an article for peer review right now</strong>. You don't need a journalism degree, a press credential, or an invitation. If you have an article worth writing, we want to hear it.</p>
-                <div class="join-us-card">
-                    <h3 class="join-us-title"><i class="fas fa-pen-nib" style="margin-right:10px;"></i>Become an ICPress Correspondent</h3>
-                    <p class="join-us-subtitle">We are in open beta — <strong style="color:white;">anyone can submit an article for peer review today.</strong> Join our growing network of independent journalists and help bring important articles to a global audience. Whether you're covering local politics, environmental issues, technology, or breaking news in your region — ICPress gives you the platform, the AI tools, and the recognition you deserve. Active contributors are eligible to receive equity in the platform.</p>
-                    <div class="join-us-perks">
-                        <span class="perk-chip"><i class="fas fa-check-circle"></i> AI writing assistance</span>
-                        <span class="perk-chip"><i class="fas fa-check-circle"></i> Peer review support</span>
-                        <span class="perk-chip"><i class="fas fa-check-circle"></i> Global audience</span>
-                        <span class="perk-chip"><i class="fas fa-check-circle"></i> Article map tools</span>
-                        <span class="perk-chip"><i class="fas fa-check-circle"></i> Source verification</span>
+            @* ── Contribute ── *@
+            <section id="contribute" class="wiki-section">
+                <h2 class="wiki-section-title">Contribute</h2>
+                <p>ICPress is currently in <strong>open beta</strong>. Anyone can submit an article for peer review — no journalism credential, press pass, or invitation required. Only a willingness to report accurately and cite your sources.</p>
+                <div class="contribute-block">
+                    <h4><i class="fas fa-pen-nib" style="margin-right:8px;color:var(--accent-color);"></i>Submit your first article</h4>
+                    <p style="font-size:0.9rem;color:var(--text-secondary);margin-bottom:0;">Create an account, draft an article using the built-in editor, cite your sources, and submit for peer review. When your article is approved, it is published under your name and visible to readers worldwide.</p>
+                    {{-- Reusing .tag-cloud + .tag from style.css --}}
+                    <div class="tag-cloud" style="margin:14px 0;">
+                        <span class="tag"><i class="fas fa-check" style="margin-right:5px;color:var(--accent-color);"></i>AI drafting assistant</span>
+                        <span class="tag"><i class="fas fa-check" style="margin-right:5px;color:var(--accent-color);"></i>Peer review support</span>
+                        <span class="tag"><i class="fas fa-check" style="margin-right:5px;color:var(--accent-color);"></i>Source verification tools</span>
+                        <span class="tag"><i class="fas fa-check" style="margin-right:5px;color:var(--accent-color);"></i>Article map tools</span>
+                        <span class="tag"><i class="fas fa-check" style="margin-right:5px;color:var(--accent-color);"></i>Global audience</span>
+                        <span class="tag"><i class="fas fa-check" style="margin-right:5px;color:var(--accent-color);"></i>Author attribution</span>
                     </div>
-                    <div class="compensation-note">
-                        <strong>Stock Compensation:</strong> Active contributors on ICPress are eligible to receive equity in the platform. We believe the journalists who build this community should share in its success — not just earn per-article fees, but hold a real stake in what we're creating together. Compensation details are shared during onboarding.
-                    </div>
+                    <a href="/account/register" class="contribute-cta">Start writing →</a>
                 </div>
             </section>
 
-            @* Technology *@
-            <section id="technology" class="wiki-section">
-                <h2 class="wiki-section-title">Technology</h2>
-                <div class="wiki-subsection">
-                    <h3 class="wiki-subsection-title">Built for Individual Journalists, Not Just Developers</h3>
-                    <p>ICPress is built with a mobile-first philosophy — contributors can write, publish, and manage their articles entirely from their phone. The AI assistant helps structure articles, suggests sources, and checks for clarity, while the peer review system ensures editorial quality without slowing down the publishing process.</p>
+            @* ── Rewards & Governance ── *@
+            <section id="rewards" class="wiki-section">
+                <h2 class="wiki-section-title">Contributor Rewards &amp; Governance</h2>
+                <p>ICPress is structured as a for-profit media company with a contributor equity component. Active contributors are eligible to receive equity in the platform through the Stakeholder Token (SSTK) programme, defined in the company charter and governing agreements.</p>
+                <div class="rewards-card">
+                    <h3>Stakeholder Tokens (SSTK)</h3>
+                    <p>A significant portion of the company's equity structure is reserved for community contributors. SSTKs are distributed based on contributor activity and impact — not purchased. Contributors who build the platform's content library hold a real stake in its long-term value.</p>
+                    <div class="rewards-detail-grid">
+                        <div class="rewards-detail">
+                            <div class="rewards-detail-title">Who is eligible</div>
+                            <p>Active contributors whose articles have been published on the platform. Specific thresholds and eligibility criteria are shared during onboarding.</p>
+                        </div>
+                        <div class="rewards-detail">
+                            <div class="rewards-detail-title">How distribution works</div>
+                            <p>Tokens are distributed based on reach and impact of published work. Mechanisms evolve over time; the foundational structure is defined in the company charter.</p>
+                        </div>
+                        <div class="rewards-detail">
+                            <div class="rewards-detail-title">Investor participation</div>
+                            <p>The platform accepts outside investment under a conventional corporate structure alongside the contributor equity programme.</p>
+                        </div>
+                        <div class="rewards-detail">
+                            <div class="rewards-detail-title">Governance</div>
+                            <p>Governance, distribution, and future equity participation mechanisms are detailed in the governing agreements and shared with contributors at onboarding.</p>
+                        </div>
+                    </div>
                 </div>
-                <div class="wiki-subsection">
-                    <h3 class="wiki-subsection-title">Key Features</h3>
-                    <ul>
-                        <li><strong>AI Article Assistant:</strong> Helps contributors write professional articles using natural language prompts</li>
-                        <li><strong>Interactive Article Maps:</strong> Attach Leaflet-powered geographic maps directly to articles, with GeoJSON support for complex event coverage</li>
-                        <li><strong>Peer Review Pipeline:</strong> Articles go through a community review process before publication</li>
-                        <li><strong>Source Verification:</strong> Contributors cite and link sources; readers can inspect them directly</li>
-                        <li><strong>Heart &amp; Engagement System:</strong> Readers engage directly with articles, signalling quality to the platform</li>
-                    </ul>
-                </div>
+                <p style="margin-top:16px;font-size:0.88rem;color:var(--text-secondary);">The platform does not sell contributor data.</p>
             </section>
 
         </main>
@@ -446,24 +510,24 @@
 @section Scripts {
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    var links = document.querySelectorAll('.wiki-nav-link');
+    var links    = document.querySelectorAll('.wiki-nav-link');
     var sections = document.querySelectorAll('.wiki-section');
 
     function updateActive() {
         var current = '';
-        sections.forEach(function(s) {
+        sections.forEach(function (s) {
             if (window.scrollY >= s.offsetTop - 100) current = s.id;
         });
-        links.forEach(function(l) {
+        links.forEach(function (l) {
             l.classList.toggle('active', l.getAttribute('href') === '#' + current);
         });
     }
 
-    window.addEventListener('scroll', updateActive);
+    window.addEventListener('scroll', updateActive, { passive: true });
     updateActive();
 
-    links.forEach(function(l) {
-        l.addEventListener('click', function(e) {
+    links.forEach(function (l) {
+        l.addEventListener('click', function (e) {
             e.preventDefault();
             var target = document.querySelector(this.getAttribute('href'));
             if (target) window.scrollTo({ top: target.offsetTop - 80, behavior: 'smooth' });

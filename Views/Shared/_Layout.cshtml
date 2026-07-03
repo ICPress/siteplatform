@@ -87,7 +87,7 @@
             <div class="footer-inner">
                 <div class="footer-column">
                     <a class="footer-logo" href="/"><img src="/static/logo_square.svg" alt="ICPress" class="footer-logo-img"></a>
-                    <p class="footer-about">Individual Contributor Press is an open-source, contributor-owned news platform. Publish articles, earn points, exchange them for equity, and grow with the platform as a co-owner.</p>
+                    <p class="footer-about">ICPress is a decentralized, open-source media ecosystem delivering finance, tech, and crypto journalism.</p>
                     <a href="https://github.com/ICPress" style="float:right"><img style="height: 70px; display: block;" alt="Open Source Code" src="/assets/images/GitHub_Invertocat_White.png"></a>
                     <a href="https://play.google.com/store/apps/details?id=net.crowdventures.storypop&amp;pcampaignid=pcampaignidMKT-Other-global-all-co-prtnr-py-PartBadge-Mar2515-1"><img style="height: 70px; display: block;" alt="Get it on Google Play" src="/assets/images/en_badge_web_generic.png"></a>
                 </div>
@@ -184,5 +184,14 @@
     });
 </script>
     @RenderSection("Scripts", required: false)
+    @using Microsoft.AspNetCore.Mvc.ViewEngines
+    @inject ICompositeViewEngine ViewEngine
+    @{
+        var result = ViewEngine.FindView(ViewContext, "_MatomoTracker.local", isMainPage: false);
+    }
+    @if (result?.Success==true)
+    {
+        <partial name="_MatomoTracker.local" />
+    }
 </body>
 </html>

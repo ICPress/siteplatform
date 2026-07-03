@@ -37,6 +37,7 @@ public class HomeController : Controller
             model.TrendingTags       = tagsTask.Result        ?? new();
             model.TrendingCategories = categoriesTask.Result  ?? new();
 
+            model.LatestStories.ForEach(x=> x.ContentText = x.ContentText?.Replace("\0", "")); //Remove any null characters
             // Fetch one story strip per top category (up to 4 categories, 4 stories each)
             var topCategories = model.TrendingCategories.Take(4).ToList();
             var categoryTasks = topCategories.Select(c =>
@@ -51,6 +52,7 @@ public class HomeController : Controller
                 var stories = categoryResults[i];
                 if (stories?.Any() == true)
                 {
+                    stories.ForEach(x=> x.ContentText = x.ContentText?.Replace("\0", "")); //Remove any null characters
                     model.CategorySections.Add(new CategorySection
                     {
                         Category = topCategories[i].Tag,

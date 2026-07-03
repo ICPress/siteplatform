@@ -1,5 +1,8 @@
 @model PageModel
 @using siteplatform.Util
+@section MetaTags {
+<meta name=”robots” content=”nofollow”>
+}
 @inject Microsoft.Extensions.Options.IOptions<ServerSettings> ServerSettingsOptions
 @{
     var cfg      = ServerSettingsOptions.Value;

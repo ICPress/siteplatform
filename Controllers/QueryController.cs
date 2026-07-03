@@ -56,7 +56,9 @@ public class QueryController : Controller
 
             var pagesLess = Enumerable.Range(Math.Max(1, page + 1 - 4), 5).ToArray();
             var pagesMore = Enumerable.Range(page + 1, 5).ToArray();
-            var pageModel = new PageModel(articles, page + 1, pagesLess.Union(pagesMore).ToArray(), requestCount)
+
+            articles?.ForEach(x=> x.ContentText = x.ContentText?.Replace("\0", "")); //Remove any null characters
+            var pageModel = new PageModel(articles ?? new List<StoryPublishedModel>(), page + 1, pagesLess.Union(pagesMore).ToArray(), requestCount)
             {
                 Query = (isUserSearch ? '@' : '#') + query
             };

@@ -49,9 +49,9 @@ public class StoryController : Controller
                 SimilarArticles = similarTask.Result ?? new List<StoryPublishedModel>()
             };
             
-            if (model.Article == null && articleResponse.StatusCode == System.Net.HttpStatusCode.NotFound)
+            if (model.Article == null && (articleResponse.StatusCode == System.Net.HttpStatusCode.NotFound || articleResponse.StatusCode == System.Net.HttpStatusCode.Gone))
             {
-                Response.StatusCode = StatusCodes.Status404NotFound;
+                Response.StatusCode =  (articleResponse.StatusCode == System.Net.HttpStatusCode.NotFound) ? StatusCodes.Status404NotFound : StatusCodes.Status410Gone;
                 Response.Headers["Cache-Control"] = "no-store";
             } else if (model.Article == null) throw new InvalidOperationException($"Article could not be fetched, article: {slugTitle}, reason:{articleResponse.ReasonPhrase}");
 

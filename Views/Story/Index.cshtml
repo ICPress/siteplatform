@@ -271,16 +271,16 @@ else
             <div class="story-body">@Html.Raw(formattedContent)</div>
 
             @* ── Sources ── *@
-            @if (article.PublicSources?.Any() == true)
+            @{
+                var referencesHtml = article.Sources != null && article.Sources.Any()
+                    ? StoryUtil.GetReferencesListHtml(article.Sources)
+                    : "";
+            }
+            @if (!string.IsNullOrEmpty(referencesHtml))
             {
                 <div class="story-sources-section">
-                    <div class="section-label"><i class="fas fa-link" style="margin-right:5px;"></i>Sources</div>
-                    @foreach (var src in article.PublicSources)
-                    {
-                        <a href="@src" target="_blank" rel="noopener noreferrer">
-                            <i class="fas fa-external-link-alt"></i>@src
-                        </a>
-                    }
+                    <div class="section-label"><i class="fas fa-link" style="margin-right:5px;"></i>References</div>
+                    @Html.Raw(referencesHtml)
                 </div>
             }
 
@@ -893,5 +893,77 @@ function fallbackCopy(text, cb) {
     ta.select();
     try { document.execCommand('copy'); cb(); } catch(e) {}
     document.body.removeChild(ta);
+}
+
+// ── Inline reference citation tooltip ──
+function showRefPopup(event, el) {
+    event.preventDefault();
+    event.stopPropagation();
+
+    closeRefPopup();
+
+    var sourceName = el.getAttribute('data-source') || '';
+    var url = el.getAttribute('data-url') || '';
+    var sentences = [];
+    try { sentences = JSON.parse(el.getAttribute('data-sentences') || '[]'); } catch (e) {}
+
+    var popup = document.createElement('div');
+    popup.className = 'reference-popup';
+    popup.id = 'activeRefPopup';
+
+    var strong = document.createElement('strong');
+    strong.textContent = sourceName;
+    popup.appendChild(strong);
+
+    sentences.forEach(function (s) {
+        var em = document.createElement('i');
+        em.textContent = s;
+        popup.appendChild(em);
+    });
+
+    if (url) {
+        var link = document.createElement('a');
+        link.href = url;
+        link.target = '_blank';
+        link.rel = 'nofollow noopener';
+        link.textContent = 'View source';
+        popup.appendChild(link);
+    }
+
+    document.body.appendChild(popup);
+
+    var rect = el.getBoundingClientRect();
+    var top  = rect.top + window.scrollY - popup.offsetHeight - 10;
+    var left = rect.left + window.scrollX + (rect.width / 2) - (popup.offsetWidth / 2);
+
+    var maxLeft = window.scrollX + document.documentElement.clientWidth - popup.offsetWidth - 8;
+    left = Math.max(8, Math.min(left, maxLeft));
+    if (top < window.scrollY) top = rect.bottom + window.scrollY + 10;
+
+    popup.style.top  = top + 'px';
+    popup.style.left = left + 'px';
+
+    setTimeout(function () {
+        document.addEventListener('click', onOutsideRefClick);
+        document.addEventListener('keydown', onRefEscape);
+    }, 0);
+}
+
+function closeRefPopup() {
+    var existing = document.getElementById('activeRefPopup');
+    if (existing) existing.remove();
+    document.removeEventListener('click', onOutsideRefClick);
+    document.removeEventListener('keydown', onRefEscape);
+}
+
+function onOutsideRefClick(ev) {
+    var popup = document.getElementById('activeRefPopup');
+    if (popup && !popup.contains(ev.target) && !ev.target.classList.contains('ref-note')) {
+        closeRefPopup();
+    }
+}
+
+function onRefEscape(ev) {
+    if (ev.key === 'Escape') closeRefPopup();
 }
 </script>

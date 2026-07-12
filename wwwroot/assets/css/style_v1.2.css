@@ -850,13 +850,51 @@
             font-size: 0.78rem; text-transform: uppercase; font-weight: 700;
             letter-spacing: 0.8px; color: var(--text-tertiary); margin-bottom: 10px;
         }
-        .story-sources-section a {
+        .story-sources-section > a {
             display: flex; align-items: center; gap: 6px; font-size: 0.88rem;
             color: var(--accent-color); margin-bottom: 6px;
             overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
         }
-        .story-sources-section a:hover { text-decoration: underline; }
-        .story-sources-section a i { flex-shrink: 0; font-size: 0.75rem; opacity: 0.7; }
+        .story-sources-section > a:hover { text-decoration: underline; }
+        .story-sources-section > a i { flex-shrink: 0; font-size: 0.75rem; opacity: 0.7; }
+
+        /* Numbered references list at the bottom of the article */
+        .story-sources-section ol.references {
+            list-style: none; counter-reset: ref-counter; padding: 0; margin: 0;
+        }
+        .story-sources-section ol.references li {
+            counter-increment: ref-counter; position: relative; padding-left: 22px;
+            font-size: 0.88rem; color: var(--text-secondary); margin-bottom: 8px;
+            line-height: 1.5;
+        }
+        .story-sources-section ol.references li::before {
+            content: counter(ref-counter) "."; position: absolute; left: 0;
+            color: var(--text-tertiary); font-weight: 700;
+        }
+        .story-sources-section ol.references a {
+            display: inline; color: var(--accent-color); word-break: break-word;
+        }
+        .story-sources-section ol.references a:hover { text-decoration: underline; }
+
+        /* Inline citation markers, e.g. [1, 2] */
+        .ref-group { white-space: nowrap; }
+        .ref-note {
+            color: var(--accent-color); font-size: 0.78em; font-weight: 700;
+            text-decoration: none; cursor: pointer;
+        }
+        .ref-note:hover { text-decoration: underline; }
+
+        /* Floating citation tooltip */
+        .reference-popup {
+            position: absolute; z-index: 1000; max-width: 320px;
+            background-color: var(--bg-secondary); border: 1px solid var(--border-color);
+            border-radius: 8px; box-shadow: 0 4px 12px var(--shadow-color);
+            padding: 12px 14px; font-size: 0.85rem; line-height: 1.5; color: var(--text-primary);
+        }
+        .reference-popup strong { display: block; color: var(--accent-color); margin-bottom: 6px; }
+        .reference-popup i { display: block; font-style: italic; color: var(--text-secondary); margin-bottom: 6px; }
+        .reference-popup a { color: var(--accent-color); font-size: 0.8rem; }
+        .reference-popup a:hover { text-decoration: underline; }
 
         /* ===== AUTHOR CARD ===== */
         .author-widget {

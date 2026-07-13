@@ -896,6 +896,16 @@
         .reference-popup a { color: var(--accent-color); font-size: 0.8rem; }
         .reference-popup a:hover { text-decoration: underline; }
 
+        /* Published/Accessed meta text — used in both the tooltip and the references list */
+        .ref-meta {
+            display: block; font-style: italic; color: var(--text-tertiary);
+            font-size: 0.78rem; margin-top: 6px;
+        }
+        /* In the bottom references list, keep it on the same row as the title on larger screens */
+        .story-sources-section ol.references .ref-meta {
+            display: inline; margin-top: 0; margin-left: 6px;
+        }
+
         /* ===== AUTHOR CARD ===== */
         .author-widget {
             background-color: var(--bg-secondary); border-radius: 8px; padding: 20px;
@@ -971,6 +981,7 @@
             .map-overlay-title { font-size: 0.78rem; }
             .map-overlay-desc  { font-size: 0.68rem; }
             .legend-item       { font-size: 0.65rem; }
+            .story-sources-section ol.references .ref-meta { display: block; margin-top: 4px; margin-left: 0; }
         }
         @media (max-width: 600px) {
             .similar-articles-grid { grid-template-columns: 1fr; }

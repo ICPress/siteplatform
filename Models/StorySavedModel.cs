@@ -50,4 +50,8 @@ public class StorySavedModel : IAuthorEntity
 
     [JsonPropertyName("category")]
     public string? Category { get; set; } = null;
+
+    [JsonPropertyName("updated")]
+    public DateTime? Updated { get; set; }
+
 }

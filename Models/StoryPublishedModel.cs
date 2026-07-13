@@ -20,6 +20,8 @@ public class StoryPublishedModel : StorySavedModel, IAuthorEntityPublished
         if (isAdmin) this.PrivateSources = savedModel.PrivateSources;
         this.StoryMap = savedModel.StoryMap;
         this.Category = savedModel.Category;
+        this.Sources = savedModel.Sources;
+        this.Updated = savedModel.Updated;
         
 
         var contentLength = (ContentText?.Length ?? 1) - 1;

@@ -270,10 +270,10 @@ else
             @* ── Article body ── *@
             <div class="story-body">@Html.Raw(formattedContent)</div>
 
-            @* ── Sources ── *@
+            @* ── References ── *@
             @{
                 var referencesHtml = article.Sources != null && article.Sources.Any()
-                    ? StoryUtil.GetReferencesListHtml(article.Sources)
+                    ? StoryUtil.GetReferencesListHtml(article)
                     : "";
             }
             @if (!string.IsNullOrEmpty(referencesHtml))
@@ -904,6 +904,8 @@ function showRefPopup(event, el) {
 
     var sourceName = el.getAttribute('data-source') || '';
     var url = el.getAttribute('data-url') || '';
+    var published = el.getAttribute('data-published') || 'n.d.';
+    var accessed = el.getAttribute('data-accessed') || 'n.d.';
     var sentences = [];
     try { sentences = JSON.parse(el.getAttribute('data-sentences') || '[]'); } catch (e) {}
 
@@ -929,6 +931,11 @@ function showRefPopup(event, el) {
         link.textContent = 'View source';
         popup.appendChild(link);
     }
+
+    var meta = document.createElement('div');
+    meta.className = 'ref-meta';
+    meta.textContent = 'Published ' + published + '. Accessed ' + accessed + '.';
+    popup.appendChild(meta);
 
     document.body.appendChild(popup);
 

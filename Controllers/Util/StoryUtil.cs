@@ -1,6 +1,7 @@
 using System.Text;
 using System.Text.Json;
 using System.Web;
+using System.Globalization;
 
 namespace siteplatform.Util;
 
@@ -68,7 +69,8 @@ public static class StoryUtil
 
         if (hasCitations)
         {
-            var citationsByPosition = BuildCitationsByPosition(storyPublished.Sources!, text.Length);
+            var accessedDisplay = GetAccessedDateDisplay(storyPublished);
+            var citationsByPosition = BuildCitationsByPosition(storyPublished.Sources!, text.Length, accessedDisplay);
 
             foreach (var kvp in citationsByPosition)
             {
@@ -122,15 +124,21 @@ public static class StoryUtil
 
     /// <summary>
     /// Builds the "Sources" list shown at the bottom of the article, e.g.:
-    /// &lt;ol class="references"&gt;&lt;li id="ref-1"&gt;Reuters. "&lt;a href="..."&gt;Headline&lt;/a&gt;."&lt;/li&gt;...&lt;/ol&gt;
-    /// The footnote index (ref-N) matches the numbers used by inline citation markers,
-    /// based on each source's position in the Sources list. If SourceName is empty, the
-    /// source's URL host (minus "www.") is used instead.
+    /// &lt;ol class="references"&gt;&lt;li id="ref-1"&gt;Reuters, "&lt;a href="..."&gt;Headline&lt;/a&gt;."
+    /// &lt;span class="ref-meta"&gt;Published July 9, 2026. Accessed July 10, 2026.&lt;/span&gt;&lt;/li&gt;...&lt;/ol&gt;
+    /// The footnote index (ref-N) matches the numbers used by inline citation markers, based on
+    /// each source's position in the Sources list. If SourceName is empty, the source's URL host
+    /// (minus "www.") is used instead. Published comes from SourceModel.Published ("n.d." if
+    /// missing); Accessed comes from the story's Updated date, falling back to Timestamp.
     /// </summary>
-    public static string GetReferencesListHtml(List<SourceModel>? sources)
+    public static string GetReferencesListHtml(StoryPublishedModel storyPublished)
     {
+        var sources = storyPublished.Sources;
+
         if (sources == null || !sources.Any())
             return string.Empty;
+
+        var accessedDisplay = GetAccessedDateDisplay(storyPublished);
 
         var sb = new StringBuilder();
         sb.Append("<ol class=\"references\">");
@@ -143,12 +151,14 @@ public static class StoryUtil
             var name = HttpUtility.HtmlEncode(GetDisplaySourceName(source));
             var urlTitle = HttpUtility.HtmlEncode(source.UrlTitle ?? "");
             var url = HttpUtility.HtmlAttributeEncode(source.Url ?? "");
+            var publishedDisplay = FormatDate(source.Published);
 
             sb.Append($"<li id=\"ref-{footnoteIndex}\">");
             sb.Append(name);
-            sb.Append(". \"");
+            sb.Append(", \"");
             sb.Append($"<a href=\"{url}\" target=\"_blank\" rel=\"nofollow noopener\">{urlTitle}</a>");
-            sb.Append(".\"");
+            sb.Append(".\" ");
+            sb.Append($"<span class=\"ref-meta\">Published {publishedDisplay}. Accessed {accessedDisplay}.</span>");
             sb.Append("</li>");
         }
 
@@ -166,7 +176,8 @@ public static class StoryUtil
     /// </summary>
     private static Dictionary<int, List<CitationEntry>> BuildCitationsByPosition(
         List<SourceModel> sources,
-        int contentLength)
+        int contentLength,
+        string accessedDisplay)
     {
         var result = new Dictionary<int, List<CitationEntry>>();
 
@@ -209,7 +220,9 @@ public static class StoryUtil
                             FootnoteIndex = footnoteIndex,
                             SourceName = GetDisplaySourceName(source),
                             Url = source.Url ?? "",
-                            Sentences = new List<string> { reference.Sentence }
+                            Sentences = new List<string> { reference.Sentence },
+                            PublishedDisplay = FormatDate(source.Published),
+                            AccessedDisplay = accessedDisplay
                         });
                     }
                 }
@@ -239,11 +252,14 @@ public static class StoryUtil
             var dataSentences = HttpUtility.HtmlAttributeEncode(sentencesJson);
             var dataSource = HttpUtility.HtmlAttributeEncode(e.SourceName);
             var dataUrl = HttpUtility.HtmlAttributeEncode(e.Url);
+            var dataPublished = HttpUtility.HtmlAttributeEncode(e.PublishedDisplay);
+            var dataAccessed = HttpUtility.HtmlAttributeEncode(e.AccessedDisplay);
 
             return
                 $"<a href=\"#ref-{e.FootnoteIndex}\" class=\"ref-note\" " +
                 $"data-source=\"{dataSource}\" data-url=\"{dataUrl}\" " +
                 $"data-sentences=\"{dataSentences}\" " +
+                $"data-published=\"{dataPublished}\" data-accessed=\"{dataAccessed}\" " +
                 $"onclick=\"showRefPopup(event, this)\">{e.FootnoteIndex}</a>";
         });
 
@@ -271,6 +287,39 @@ public static class StoryUtil
             host = host.Substring(4);
 
         return host;
+    }
+
+    /// <summary>
+    /// Formats a date as e.g. "July 9, 2026"; returns "n.d." when the date is missing.
+    /// </summary>
+    private static string FormatDate(DateTime? date)
+    {
+        return date.HasValue
+            ? date.Value.ToString("MMMM d, yyyy", CultureInfo.InvariantCulture)
+            : "n.d.";
+    }
+
+    /// <summary>
+    /// The "Accessed" date shown for every source: the story's Updated date, falling back
+    /// to parsing Timestamp when Updated is missing. "n.d." if neither is available/parseable.
+    /// </summary>
+    private static string GetAccessedDateDisplay(StoryPublishedModel storyPublished)
+    {
+        var accessedDate = storyPublished.Updated;
+
+        if (!accessedDate.HasValue && !string.IsNullOrWhiteSpace(storyPublished.Timestamp))
+        {
+            if (DateTime.TryParse(
+                storyPublished.Timestamp,
+                CultureInfo.InvariantCulture,
+                DateTimeStyles.None,
+                out var parsedTimestamp))
+            {
+                accessedDate = parsedTimestamp;
+            }
+        }
+
+        return FormatDate(accessedDate);
     }
 
     private static string GetHtmlTag(
@@ -418,5 +467,9 @@ public static class StoryUtil
         public string Url { get; set; } = "";
 
         public List<string> Sentences { get; set; } = new List<string>();
+
+        public string PublishedDisplay { get; set; } = "";
+
+        public string AccessedDisplay { get; set; } = "";
     }
 }

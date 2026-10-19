@@ -1,0 +1,20 @@
+@model PublicProfileModel
+@using System.Security.Claims
+@{ ViewData["Title"] = Model.DisplayName; var own = User.FindFirstValue(ClaimTypes.NameIdentifier) == Model.Username; }
+<section class="container community-page">
+    <article class="profile-card">
+        <div class="profile-cover">@if (Model.CoverUrl != null) { <img src="@Model.CoverUrl" alt="" class="profile-cover-image"> }</div>
+        <div class="profile-body">
+            <div class="profile-topline">
+                <div class="profile-avatar">@if (Model.AvatarUrl != null) { <img src="@Model.AvatarUrl" alt="@Model.DisplayName"> } else { <i class="fas fa-user" aria-hidden="true"></i> }</div>
+                @if (own) { <a class="btn btn-primary" href="/profile/edit">Edit profile</a> }
+            </div>
+            @if (TempData["ProfileMessage"] is string message) { <p class="form-success" role="status">@message</p> }
+            <h1>@Model.DisplayName</h1><p class="profile-handle">@@@Model.Username</p>
+            @if (!string.IsNullOrWhiteSpace(Model.Description)) { <p class="profile-description">@Model.Description</p> }
+            <p class="profile-joined"><i class="far fa-calendar" aria-hidden="true"></i> Joined <time datetime="@Model.MemberSince.ToString("O")">@Model.MemberSince.ToString("MMMM yyyy")</time></p>
+            <div class="profile-stats"><span><strong>@Model.Followers.ToString("N0")</strong> followers</span><span><strong>@Model.Following.ToString("N0")</strong> following</span><a href="/q/u/@Uri.EscapeDataString(Model.Username)"><strong>@Model.ArticlesPublished.ToString("N0")</strong> articles</a></div>
+        </div>
+    </article>
+    <a class="auth-back" href="/q/u/@Uri.EscapeDataString(Model.Username)">Read articles by @Model.DisplayName →</a>
+</section>

@@ -73,7 +73,7 @@
                                     </a>
                                 }
                                 <div class="article-meta">
-                                    <a href="/q/u/@article.AuthorName" class="article-author-link">
+                                    <a href="/u/@Uri.EscapeDataString(article.AuthorName)" class="article-author-link">
                                         @if (!string.IsNullOrEmpty(article.AuthorBadge))
                                         {
                                             var pIconUrl = LinkUtil.GetDefaultImageLinkFromImageInfoMetadata(article.AuthorBadge, bigCDN, smallCDN);
@@ -84,7 +84,7 @@
                                             <div class="article-author-avatar"><i class="fas fa-user"></i></div>
                                         }
                                     </a>
-                                    <a href="/q/u/@article.AuthorName" class="article-author-name-link">@article.AuthorName</a>
+                                    <a href="/u/@Uri.EscapeDataString(article.AuthorName)" class="article-author-name-link">@(string.IsNullOrWhiteSpace(article.AuthorFullName) ? article.AuthorName : article.AuthorFullName)</a>
                                     @if (ts.HasValue)
                                     {
                                         <span class="article-date"><i class="fas fa-clock"></i> @DateUtil.GetTimeAgoString(ts.Value)</span>

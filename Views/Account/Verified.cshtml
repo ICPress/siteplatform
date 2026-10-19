@@ -1,0 +1,6 @@
+@{ ViewData["Title"] = "Email verified"; }
+<section class="auth-section container"><div class="auth-card">
+    <span class="beta-kicker">ICPress account</span><h1>Your email is verified</h1><p>You’re now logged in.</p>
+    <a class="btn btn-primary" href="@ViewBag.ReturnUrl">Continue to website</a>
+    @if (!string.IsNullOrEmpty((string?)ViewBag.AndroidIntent)) { <a class="btn android-verify" href="@ViewBag.AndroidIntent">Continue in app</a> }
+</div></section>

@@ -1,0 +1,37 @@
+@using siteplatform.Models
+@{
+    var account = Context.Items["WebAccount"] as WebAccountModel;
+    var displayName = !string.IsNullOrWhiteSpace(account?.FullName) ? account.FullName : account?.Username ?? User.Identity?.Name ?? "Account";
+    var initials = string.Concat(displayName.Split(' ', StringSplitOptions.RemoveEmptyEntries).Take(2).Select(x => x[0])).ToUpperInvariant();
+    var notifications = account?.UnreadNotifications ?? 0;
+    var messages = account?.UnreadMessages ?? 0;
+}
+@if (User.Identity?.IsAuthenticated == true)
+{
+    <div class="user-menu-container" id="userMenuContainer">
+        <button class="user-menu-button" id="userMenuButton" type="button" aria-label="Open account menu for @displayName" aria-expanded="false" aria-controls="userDropdown">
+            <span class="user-avatar">@if (account?.AvatarUrl != null) { <img src="@account.AvatarUrl" alt=""> } else { @initials }</span><span class="user-name">@displayName</span>
+            <span class="count-bubble" id="userNavBadge" hidden="@(notifications + messages == 0)" aria-label="@(notifications + messages) unread items">@(notifications + messages)</span>
+            <i class="fas fa-chevron-down dropdown-arrow" aria-hidden="true"></i>
+        </button>
+        <div class="user-dropdown" id="userDropdown">
+            <div class="user-dropdown-header">
+                <div class="dropdown-user-avatar">@if (account?.AvatarUrl != null) { <img src="@account.AvatarUrl" alt=""> } else { @initials }</div>
+                <div><div class="dropdown-user-name">@displayName</div><div class="dropdown-user-email">@account?.Email</div></div>
+            </div>
+            <div class="user-dropdown-menu">
+                <a class="user-dropdown-item" href="/profile"><i class="fas fa-user" aria-hidden="true"></i>View Profile</a>
+                <a class="user-dropdown-item" href="/notifications"><i class="fas fa-bell" aria-hidden="true"></i>Notifications <span class="count-bubble" id="notificationBadge" hidden="@(notifications == 0)">@notifications</span></a>
+                <a class="user-dropdown-item" href="/messages"><i class="fas fa-envelope" aria-hidden="true"></i>Messages <span class="count-bubble" id="messageBadge" hidden="@(messages == 0)">@messages</span></a>
+                <small class="menu-note" id="account-count-status" role="status" hidden></small>
+            </div>
+            <div class="user-dropdown-footer">
+                <form method="post" action="/Account/signout">@Html.AntiForgeryToken()<button class="user-dropdown-item" type="submit"><i class="fas fa-sign-out-alt" aria-hidden="true"></i>Sign Out</button></form>
+            </div>
+        </div>
+    </div>
+}
+else
+{
+    <a class="btn btn-primary header-signin" href="/Account/signin?returnUrl=@Uri.EscapeDataString(Context.Request.Path.ToString() + Context.Request.QueryString.ToString())">Sign in</a>
+}

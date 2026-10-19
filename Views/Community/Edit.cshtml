@@ -1,0 +1,43 @@
+@model EditProfileModel
+@{ ViewData["Title"] = "Edit profile"; }
+<section class="container community-page">
+    <a class="auth-back" href="/profile">← View profile</a>
+    <h1>Edit profile</h1>
+    @if (TempData["ProfileMessage"] is string message) { <p class="form-success" role="status">@message</p> }
+    <div class="profile-card profile-editor">
+        <div class="profile-cover"><img id="cover-preview" src="@Model.Profile.CoverUrl" alt="Cover preview" hidden="@(Model.Profile.CoverUrl == null)"></div>
+        <div class="profile-body">
+            <div class="profile-avatar"><img id="avatar-preview" src="@Model.Profile.AvatarUrl" alt="Avatar preview" hidden="@(Model.Profile.AvatarUrl == null)"><i class="fas fa-user" aria-hidden="true" hidden="@(Model.Profile.AvatarUrl != null)"></i></div>
+            <div class="profile-upload-controls">
+                @foreach (var kind in new[] { "avatar", "cover" }) {
+                    <div>
+                        <div data-profile-image="@kind" data-prepare-url="@Url.RouteUrl("ProfileImagePrepare", new { kind })" data-complete-url="@Url.RouteUrl("ProfileImageComplete", new { kind })">
+                            @Html.AntiForgeryToken()
+                            <label for="@kind-file">@(kind == "avatar" ? "Profile photo" : "Cover photo")</label>
+                            <input id="@kind-file" type="file" accept="image/jpeg,image/png" aria-describedby="@kind-status">
+                            <button type="button" class="text-button" data-upload-retry hidden>Retry photo upload</button>
+                            <p id="@kind-status" class="upload-status" role="status"></p>
+                        </div>
+                        <form method="post" action="/profile/image/@kind/remove">@Html.AntiForgeryToken()<button class="text-button" type="submit">Remove @(kind == "avatar" ? "photo" : "cover")</button></form>
+                    </div>
+                }
+            </div>
+            <p class="muted">JPG or PNG, up to 5 MB. Photos are cropped to a square; covers to a wide banner. Images keep their aspect ratio within 1024 × 1024, with a smaller preview when needed.</p>
+            <form method="post" action="/profile/edit" class="auth-form">
+                @Html.AntiForgeryToken()
+                @if (!ViewData.ModelState.IsValid) { <div asp-validation-summary="All" class="validation-errors" role="alert"></div> }
+                <label asp-for="FullName">Full name</label><input asp-for="FullName" maxlength="200" autocomplete="name">
+                <label asp-for="Description">About you</label><textarea asp-for="Description" rows="4" maxlength="500" placeholder="Tell people a little about yourself"></textarea>
+                <small>Up to 500 characters. This appears on your public profile.</small>
+                <button class="btn btn-primary" type="submit">Save profile</button>
+            </form>
+        </div>
+    </div>
+    <section class="community-card"><h2>Email address</h2><p>Current email: <strong>@Model.Email</strong></p>
+        <form method="post" action="/profile/email" class="auth-form">@Html.AntiForgeryToken()<label for="new-email">New email address</label><input id="new-email" name="email" type="email" maxlength="255" required autocomplete="email"><button class="btn btn-primary" type="submit">Send verification link</button></form>
+        <p class="muted">Your email changes after you open the verification link sent to the new address.</p>
+    </section>
+    <section class="community-card"><h2>Delete account</h2><p>Permanently delete your account and published articles.</p><a class="text-button danger" href="/profile/delete">Delete my account</a></section>
+</section>
+<partial name="_ProfileCropper" />
+@section Scripts { <script src="/assets/js/profile-images.js" asp-append-version="true" defer></script> <script src="/assets/js/community.js" asp-append-version="true" defer></script> }

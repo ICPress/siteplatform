@@ -1,0 +1,10 @@
+{
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node dom_checks.mjs && node community_dom_checks.mjs && node image_limits_checks.mjs"
+  },
+  "devDependencies": {
+    "happy-dom": "21.0.1"
+  }
+}

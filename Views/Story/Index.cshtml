@@ -35,7 +35,6 @@
     var isoTimestamp = timestamp.HasValue
                            ? timestamp.Value.ToString("o", System.Globalization.CultureInfo.InvariantCulture)
                            : "";
-    var authorName   = article?.AuthorName ?? "ICPress";
 }
 
 @* Open Graph *@
@@ -89,8 +88,8 @@
     }
     "author": {
         "@@type": "Person",
-        "name": @Html.Raw(System.Text.Json.JsonSerializer.Serialize(authorName)),
-        "url":  @Html.Raw(System.Text.Json.JsonSerializer.Serialize($"https://{Context.Request.Host}/q/u/{authorName}"))
+        "name": @Html.Raw(System.Text.Json.JsonSerializer.Serialize(string.IsNullOrWhiteSpace(article?.AuthorFullName) ? article?.AuthorName : article.AuthorFullName)),
+        "url":  @Html.Raw(System.Text.Json.JsonSerializer.Serialize($"https://{Context.Request.Host}/u/{article?.AuthorName}"))
     },
     "publisher": {
         "@@type": "Organization",
@@ -172,7 +171,7 @@ else
             <h1 class="story-h1">@title</h1>
 
             <div class="story-meta-row">
-                <a href="/q/u/@article.AuthorName" class="story-author-link">
+                <a href="/u/@Uri.EscapeDataString(article.AuthorName)" class="story-author-link">
                     @if (!string.IsNullOrEmpty(article.AuthorBadge))
                     {
                         var metaIconUrl = LinkUtil.GetDefaultImageLinkFromImageInfoMetadata(article.AuthorBadge, bigCDN, smallCDN);
@@ -183,7 +182,7 @@ else
                         <div class="story-author-avatar"><i class="fas fa-user"></i></div>
                     }
                 </a>
-                <a href="/q/u/@article.AuthorName" class="story-author-name">@article.AuthorName</a>
+                <a href="/u/@Uri.EscapeDataString(article.AuthorName)" class="story-author-name">@(string.IsNullOrWhiteSpace(article.AuthorFullName) ? article.AuthorName : article.AuthorFullName)</a>
                 @if (timestamp.HasValue)
                 {
                     <span class="story-date">
@@ -310,7 +309,7 @@ else
         <aside class="story-sidebar">
 
             @* Author card *@
-            <a href="/q/u/@article.AuthorName" class="author-widget">
+            <a href="/u/@Uri.EscapeDataString(article.AuthorName)" class="author-widget">
                 @if (!string.IsNullOrEmpty(article.AuthorBadge))
                 {
                     var sidebarIconUrl = LinkUtil.GetDefaultImageLinkFromImageInfoMetadata(article.AuthorBadge, bigCDN, smallCDN);
@@ -321,8 +320,8 @@ else
                     <div class="author-widget-avatar"><i class="fas fa-user"></i></div>
                 }
                 <div>
-                    <div class="author-widget-name">@article.AuthorName</div>
-                    <div class="author-widget-link">View all articles →</div>
+                    <div class="author-widget-name">@(string.IsNullOrWhiteSpace(article.AuthorFullName) ? article.AuthorName : article.AuthorFullName)</div>
+                    <div class="author-widget-link">View profile →</div>
                 </div>
             </a>
 
@@ -359,7 +358,7 @@ else
                     <a href="/p/1" class="topic">All Articles</a>
                     @if (!string.IsNullOrEmpty(article.AuthorName))
                     {
-                        <a href="/q/u/@article.AuthorName" class="topic">By @article.AuthorName</a>
+                        <a href="/u/@Uri.EscapeDataString(article.AuthorName)" class="topic">By @(string.IsNullOrWhiteSpace(article.AuthorFullName) ? article.AuthorName : article.AuthorFullName)</a>
                     }
                 </div>
             </div>
@@ -408,7 +407,7 @@ else
                                     <p class="article-excerpt">@(sim.ContentText.Length > 120 ? sim.ContentText.Substring(0, 120) + "…" : sim.ContentText)</p>
                                 }
                                 <div class="article-meta">
-                                    <a href="/q/u/@sim.AuthorName" class="article-author-link">
+                                    <a href="/u/@Uri.EscapeDataString(sim.AuthorName)" class="article-author-link">
                                         @if (!string.IsNullOrEmpty(sim.AuthorBadge))
                                         {
                                             var simIconUrl = LinkUtil.GetDefaultImageLinkFromImageInfoMetadata(sim.AuthorBadge, bigCDN, smallCDN);
@@ -419,7 +418,7 @@ else
                                             <div class="article-author-avatar"><i class="fas fa-user"></i></div>
                                         }
                                     </a>
-                                    <a href="/q/u/@sim.AuthorName" class="article-author-name-link">@sim.AuthorName</a>
+                                    <a href="/u/@Uri.EscapeDataString(sim.AuthorName)" class="article-author-name-link">@(string.IsNullOrWhiteSpace(sim.AuthorFullName) ? sim.AuthorName : sim.AuthorFullName)</a>
                                     @if (simTs.HasValue)
                                     {
                                         <span class="article-date"><i class="fas fa-clock"></i> @DateUtil.GetTimeAgoString(simTs.Value)</span>

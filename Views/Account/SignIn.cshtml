@@ -1,0 +1,49 @@
+@{ ViewData["Title"] = "Sign in"; }
+<section class="auth-section container">
+    <div class="auth-card">
+        <span class="beta-kicker">ICPress account</span>
+        <h1>@(ViewBag.EmailStep == true ? "Sign in with email" : "Welcome to ICPress")</h1>
+        <p>Sign in to join the instrument dashboard beta waiting list.</p>
+        @if (ViewBag.Error != null) { <p class="form-error" role="alert">@ViewBag.Error</p> }
+        @if (ViewBag.Message != null) { <p class="form-success" role="status">@ViewBag.Message</p> }
+        @if (ViewBag.EmailStep == true)
+        {
+            @if (ViewBag.Message == null)
+            {
+                <form method="post" action="/Account/email" class="auth-form">
+                    @Html.AntiForgeryToken()
+                    <input name="returnUrl" value="@ViewBag.ReturnUrl" type="hidden">
+                    <label for="signin-email">Email address</label>
+                    <input id="signin-email" name="email" type="email" maxlength="255" autocomplete="email" required autofocus>
+                    <button class="btn btn-primary" type="submit">Email me a sign-in link</button>
+                </form>
+            }
+            <a class="auth-back" href="/Account/signin?returnUrl=@Uri.EscapeDataString((string)ViewBag.ReturnUrl)">Back to sign-in options</a>
+        }
+        else
+        {
+            <div class="auth-choices">
+                @if (!string.IsNullOrWhiteSpace((string?)ViewBag.GoogleClientId))
+                {
+                    <div id="google-signin" data-client-id="@ViewBag.GoogleClientId"></div>
+                    <p id="google-status" class="auth-note" role="status">Google sign-in is loading.</p>
+                    <form id="google-form" method="post" action="/Account/google" hidden>
+                        @Html.AntiForgeryToken()
+                        <input name="credential" id="google-credential" type="hidden">
+                        <input name="returnUrl" value="@ViewBag.ReturnUrl" type="hidden">
+                    </form>
+                }
+                else
+                {
+                    <button class="btn auth-google-unavailable" type="button" disabled>Continue with Google</button>
+                    <p class="auth-note">Google sign-in is currently unavailable.</p>
+                }
+                <div class="auth-divider">or</div>
+                <a class="btn btn-primary auth-email-choice" href="/Account/signin?method=email&amp;returnUrl=@Uri.EscapeDataString((string)ViewBag.ReturnUrl)"><i class="fas fa-envelope" aria-hidden="true"></i> Continue with email</a>
+            </div>
+        }
+    </div>
+</section>
+@section Scripts {
+    <script src="/assets/js/signin.js" asp-append-version="true" defer></script>
+}

@@ -1,0 +1,24 @@
+@model ConversationModel
+@using System.Security.Claims
+@{ ViewData["Title"] = "Messages · " + Model.Peer.DisplayName; var username = User.FindFirstValue(ClaimTypes.NameIdentifier); }
+<section class="container community-page"><a class="auth-back" href="/messages">← Messages</a>
+<h1><a href="/u/@Uri.EscapeDataString(Model.Peer.Username)">@Model.Peer.DisplayName</a></h1>
+@if (Model.Items.Count == 30) { <a class="auth-back" href="/messages/@Uri.EscapeDataString(Model.Peer.Username)?before=@Model.Items.Last().Id">Earlier messages</a> }
+<div class="conversation">
+@if (Model.Items.Count == 0) { <p class="community-empty">There are no messages to display.</p> }
+@foreach (var item in Model.Items.AsEnumerable().Reverse()) {
+    <article class="message-bubble @(item.Author == username ? "own-message" : "")" data-read-item="@item.Id">
+        <a class="message-author" href="/u/@Uri.EscapeDataString(item.Author)">@(item.Author == username ? "You" : Model.Peer.DisplayName)</a>
+        @if (item.Deleted) { <p class="muted">This message has been deleted.</p> } else {
+            @if (item.Content.Length > 0) { <p>@item.Content</p> }
+            @foreach (var image in item.Images) { <a href="@image" target="_blank" rel="noopener"><img class="message-image" src="@image" alt="Message attachment" loading="lazy"></a> }
+        }
+        <time datetime="@item.Timestamp.ToString("O")">@item.Timestamp.ToString("d MMM yyyy · HH:mm") UTC</time>
+    </article>
+}
+</div>
+@if (Model.Items.Any(x => !x.Read && !x.Deleted && x.Author != username)) {
+<form method="post" action="/messages/@Uri.EscapeDataString(Model.Peer.Username)/read" data-mark-read hidden>@Html.AntiForgeryToken()@foreach (var item in Model.Items.Where(x => !x.Read && !x.Deleted && x.Author != username)) { <input type="hidden" name="ids" value="@item.Id"> }</form><p class="read-status" role="status"></p>
+}
+</section>
+@section Scripts { <script src="/assets/js/community.js" asp-append-version="true" defer></script> }

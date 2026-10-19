@@ -2,11 +2,13 @@ using System.Text.Json.Serialization;
 
 public class ServerSettings
 {
+    public string AndroidVerificationUrl { get; set; } = "https://icpress.org/account/verify";
+    public string GoogleClientId { get; set; } = "";
+
     public string MysqlConnectionGorse { get; set; } = "";
     public string MysqlConnectionStoryPop { get; set; } = "";
     public string JWTSecret { get; set; } = "";
     public string CDNAccessKey { get; set; } = "";
-    public string IgniteEndpoint { get; set; } = "";
     public string GorseAPIEndpoint { get; set; } = "";
     public string SpacyEndpoint { get; set; } = "";
     public string SwiftAuthEndpoint { get; set; } = "";

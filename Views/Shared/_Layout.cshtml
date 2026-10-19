@@ -1,4 +1,8 @@
-﻿<!DOCTYPE html>
+@{
+    var androidIntentUrl = TempData["AndroidIntentUrl"] as string;
+    ViewData["AndroidIntentUrl"] = User.Identity?.IsAuthenticated == true ? androidIntentUrl : null;
+}
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -36,6 +40,7 @@
     </style>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="/assets/css/style_v1.4.css">
+    <link rel="stylesheet" href="/assets/css/platform-beta.css" asp-append-version="true">
      <!-- Absolute path for icons so that they can be resolved by external apps -->
     <link rel="apple-touch-icon" href="https://icpress.org/apple-touch-icon_default.png" />
     <link rel="apple-touch-icon" sizes="57x57" href="https://icpress.org/apple-touch-icon-57x57.png" />
@@ -65,20 +70,23 @@
                 <a class="logo" href="/">
                     <img src="/static/logo.svg" alt="ICPress" class="logo-img">
                 </a>
-                <button class="mobile-menu-toggle" id="mobileMenuToggle">☰</button>
-                <nav class="nav" id="mainNav">
+                <partial name="_InstrumentSearch" />
+                <button class="mobile-menu-toggle" id="mobileMenuToggle" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="mainNav" hidden="@(User.Identity?.IsAuthenticated == true)">☰</button>
+                <nav class="nav @(User.Identity?.IsAuthenticated == true ? "nav-auth" : "nav-guest")" id="mainNav">
                     <ul>
-                        <li>
-                            <button class="dark-mode-toggle" id="darkModeToggle">
+                        <li class="theme-nav">
+                            <button class="dark-mode-toggle" id="darkModeToggle" type="button" aria-label="Toggle light or dark theme">
                                 <i class="fas fa-moon"></i> Dark
                             </button>
                         </li>
+                        <li class="account-nav"><partial name="_AccountMenu" /></li>
                     </ul>
                 </nav>
             </div>
         </div>
     </header>
 
+    <partial name="_AndroidHandoff" />
     @RenderBody()
 
     <!-- Footer -->
@@ -159,37 +167,21 @@
         const mobileMenuToggle = document.getElementById('mobileMenuToggle');
         const mainNav = document.getElementById('mainNav');
         mobileMenuToggle.addEventListener('click', function () {
-            mainNav.classList.toggle('active');
+            const open = mainNav.classList.toggle('active');
+            mobileMenuToggle.setAttribute('aria-expanded', String(open));
         });
 
-        // User Menu
-        const userMenuButton = document.getElementById('userMenuButton');
-        const userDropdown = document.getElementById('userDropdown');
-        const userMenuContainer = document.getElementById('userMenuContainer');
 
-        if (userMenuButton) {
-            userMenuButton.addEventListener('click', function (e) {
-                e.stopPropagation();
-                userDropdown.classList.toggle('active');
-            });
-
-            document.addEventListener('click', function (e) {
-                if (userMenuContainer && !userMenuContainer.contains(e.target)) {
-                    userDropdown.classList.remove('active');
-                }
-            });
-
-            userDropdown.addEventListener('click', function (e) { e.stopPropagation(); });
-        }
     });
 </script>
+    <script src="/assets/js/platform-beta.js" asp-append-version="true" defer></script>
     @RenderSection("Scripts", required: false)
     @using Microsoft.AspNetCore.Mvc.ViewEngines
     @inject ICompositeViewEngine ViewEngine
     @{
         var result = ViewEngine.FindView(ViewContext, "_MatomoTracker.local", isMainPage: false);
     }
-    @if (result?.Success==true)
+    @if (result?.Success==true && !Context.Request.Path.StartsWithSegments("/Account", StringComparison.OrdinalIgnoreCase) && ViewData["AndroidIntentUrl"] == null)
     {
         <partial name="_MatomoTracker.local" />
     }

@@ -1,0 +1,13 @@
+@{
+    var intentUrl = ViewData["AndroidIntentUrl"] as string;
+}
+@if (User.Identity?.IsAuthenticated == true && !string.IsNullOrEmpty(intentUrl))
+{
+    <aside class="app-handoff container" id="android-handoff" hidden aria-label="Android sign-in">
+        <span>You’re signed in. You can also continue in the Android app.</span>
+        <a class="btn btn-primary" id="android-handoff-link" href="@intentUrl">Open Android app</a>
+        <button class="app-handoff-dismiss" type="button" id="android-handoff-dismiss" aria-label="Dismiss Android sign-in">×</button>
+    </aside>
+    <noscript><p class="container"><a href="@intentUrl">Continue in the Android app</a></p></noscript>
+    <script src="/assets/js/android-handoff.js" asp-append-version="true" defer></script>
+}

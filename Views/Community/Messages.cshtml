@@ -1,0 +1,12 @@
+@model List<InboxModel>
+@{ ViewData["Title"] = "Messages"; }
+<section class="container community-page"><h1>Messages</h1><div class="activity-list">
+@if (Model.Count == 0) { <div class="community-empty"><i class="far fa-envelope" aria-hidden="true"></i><h2>No messages yet</h2><p>Your latest conversations will appear here.</p></div> }
+@foreach (var item in Model) {
+    <a class="activity-item @(item.Unread > 0 ? "unread" : "")" href="/messages/@Uri.EscapeDataString(item.Username)">
+    <div class="activity-avatar">@if (item.AvatarUrl != null) { <img src="@item.AvatarUrl" alt=""> } else { <i class="fas fa-user" aria-hidden="true"></i> }</div>
+    <div class="activity-copy"><strong class="activity-title">@item.DisplayName</strong><p class="message-snippet">@item.Preview</p><time datetime="@item.Timestamp.ToString("O")">@item.Timestamp.ToString("d MMM yyyy · HH:mm") UTC</time></div>
+    @if (item.Unread > 0) { <span class="count-bubble" aria-label="@item.Unread unread messages">@item.Unread</span> }
+    </a>
+}
+</div>@if (Model.Count == 30) { <a class="auth-back" href="/messages?before=@Model.Last().Id">Older conversations →</a> }</section>

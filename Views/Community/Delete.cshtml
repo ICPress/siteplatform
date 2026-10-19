@@ -1,0 +1,8 @@
+@using System.Security.Claims
+@{ ViewData["Title"] = "Delete account"; var username = User.FindFirstValue(ClaimTypes.NameIdentifier); }
+<section class="auth-section container"><div class="auth-card"><h1>Delete your account?</h1>
+<p>This permanently deletes your account, published articles, messages and account information, including rewards that have not been transferred.</p>
+<form method="post" action="/profile/delete" class="auth-form">@Html.AntiForgeryToken()
+@if (!ViewData.ModelState.IsValid) { <div asp-validation-summary="All" class="validation-errors" role="alert"></div> }
+<label for="confirmation">Type <strong>@username</strong> to confirm</label><input id="confirmation" name="confirmation" required autocomplete="off">
+<button class="btn btn-primary danger-button" type="submit">Permanently delete account</button></form><a class="auth-back" href="/profile/edit">Cancel</a></div></section>

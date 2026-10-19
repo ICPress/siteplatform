@@ -1,0 +1,58 @@
+@model InstrumentModel
+@{ ViewData["Title"] = Model.Name + " · Instrument dashboard"; }
+@section MetaTags { <meta name="robots" content="noindex,follow"> }
+<section class="container instrument-page">
+    <div class="instrument-heading">
+        <div>
+            <span class="beta-kicker">Instrument dashboard</span>
+            <h1>@Model.Name <span>(@Model.Symbol)</span></h1>
+            <p>@Model.Exchange · @Model.CountryCode</p>
+        </div>
+    </div>
+    <section id="marketExpandRegion" class="dashboard-hero">
+        <div class="instrument-market-layout @(Model.HasSecFilings ? "" : "without-fair-values")">
+            <div class="market-chart-panel">
+                <div class="market-panel-head"><span class="market-kicker">@Model.Symbol · Market chart</span><div class="market-panel-actions">
+                    <button type="button" id="chartModeToggle" class="market-chart-mode-toggle" aria-pressed="false" aria-controls="technical-chart"><i class="fas fa-chart-line" aria-hidden="true"></i><span>Technical chart</span></button>
+                    <button type="button" id="marketExpandToggle" class="market-expand-toggle" aria-expanded="false" aria-controls="marketExpandRegion"><i class="fas fa-expand" aria-hidden="true"></i><span>Expand</span></button>
+                </div></div>
+                <div class="tv-chart-shell">
+                    <div id="instrument-chart" class="instrument-chart" data-symbol="@Model.TradingViewSymbol" aria-label="@Model.Symbol market chart"><p class="chart-fallback">Loading chart…</p></div>
+                    <div id="technical-chart" class="gated-technical" hidden>
+                        <div class="technical-chart-preview" aria-hidden="true" inert><svg viewBox="0 0 800 400" preserveAspectRatio="none" focusable="false"><path class="chart-grid" d="M0 80H800M0 160H800M0 240H800M0 320H800M100 0V400M250 0V400M400 0V400M550 0V400M700 0V400"/><path class="chart-line" d="M0 310L35 280 60 305 90 230 120 250 150 215 175 245 210 180 245 220 280 165 320 185 360 110 405 170 450 130 490 150 530 80 575 110 620 70 665 95 710 40 755 65 800 25"/><path class="chart-levels" d="M0 100H800M0 200H800M0 300H800"/></svg></div>
+                        <div class="technical-beta-gate"><div class="beta-gate-card">
+                            @if (User.Identity?.IsAuthenticated == true) { <h2>You’re on the beta waiting list</h2><p>We’ll let you know when technical insights are ready.</p> }
+                            else { <h2>Join the beta</h2><p>Sign in to join the waiting list for technical insights.</p><a class="btn btn-primary" href="/Account/signin?returnUrl=@Uri.EscapeDataString(Context.Request.Path.ToString())">Sign in to join beta</a> }
+                        </div></div>
+                    </div>
+                </div>
+            </div>
+            <div class="instrument-levels"><aside aria-label="GEX levels available during beta" class="technicals-panel"><div class="technicals-kicker">GEX · Latest daily close</div><h2 class="technicals-title">Key option levels</h2><p class="technicals-intro">Put wall is treated as support while latest price is above it; call wall is treated as resistance while price is below it, otherwise both are dynamic (yellow).</p><div class="technical-level close-level"><div class="technical-label">Latest close</div><div class="technical-value concealed-value" aria-hidden="true">••••••</div></div><div class="technical-level support-level"><div class="technical-copy"><div class="technical-label">Put wall</div><span class="level-role support-role concealed-value" aria-hidden="true">••••••</span></div><div class="technical-value-wrap"><div class="technical-value concealed-value" aria-hidden="true">••••••</div><small class=" concealed-value" aria-hidden="true">••••••</small></div></div><div class="technical-level resistance-level"><div class="technical-copy"><div class="technical-label">Call wall</div><span class="level-role resistance-role concealed-value" aria-hidden="true">••••••</span></div><div class="technical-value-wrap"><div class="technical-value concealed-value" aria-hidden="true">••••••</div><small class=" concealed-value" aria-hidden="true">••••••</small></div></div><div class="technical-map"><div class="technical-map-label">GEX price level map</div><div class="level-track"><span class="level-pin close-pin" style="--level-position:53.9%"></span><span class="level-pin support-pin" style="--level-position:23.1%"></span><span class="level-pin resistance-pin" style="--level-position:76.9%"></span></div><div class="level-scale"><span class=" concealed-value" aria-hidden="true">••••••</span><span class=" concealed-value" aria-hidden="true">••••••</span><span class=" concealed-value" aria-hidden="true">••••••</span></div></div></aside></div>
+            @if (Model.HasSecFilings)
+            {
+            <div class="instrument-fair-values"><div class="sidebar-widget" id="calculatedFairValuesWidget"><h3 class="widget-title">Calculated fair values</h3><div class="sidebar-fv-basis" id="sidebarFairValueBasis">Estimates available during beta</div><div class="sidebar-fv-grid"><div class="sidebar-fv-card primary"><div class="sidebar-fv-label">Midpoint fair value</div><div class="sidebar-fv-value concealed-value" id="sidebarMidpointValue" aria-hidden="true">••••••</div></div><div class="sidebar-fv-card"><div class="sidebar-fv-label">Cash Flow DCF</div><div class="sidebar-fv-value concealed-value" id="sidebarFormula1Value" aria-hidden="true">••••••</div></div><div class="sidebar-fv-card"><div class="sidebar-fv-label">Revenue Unit Economics</div><div class="sidebar-fv-value concealed-value" id="sidebarFormula2Value" aria-hidden="true">••••••</div></div></div></div></div>
+            }
+        </div>
+    </section>
+    <div class="instrument-preview">
+        <iframe id="instrument-preview-frame" src="/assets/instrument-preview.html" title="Decorative dashboard preview" tabindex="-1" aria-hidden="true" inert sandbox="" loading="lazy"></iframe>
+        <div class="beta-gate">
+            <div class="beta-gate-card">
+                <div class="beta-lock"><i class="fas fa-lock" aria-hidden="true"></i></div><br>
+                <span class="beta-kicker">Financial health dashboard</span>
+                @if (User.Identity?.IsAuthenticated == true)
+                {
+                    <h2>You’re on the beta waiting list</h2>
+                    <p>Thanks for joining ICPress. We’ll let you know when instrument insights are ready for you.</p>
+                    <a class="btn btn-primary" href="/">Explore ICPress</a>
+                }
+                else
+                {
+                    <h2>Sign in to view the details</h2>
+                    <p>Create an account or sign in to join the beta waiting list. Instrument insights will unlock when beta access is available.</p>
+                    <a class="btn btn-primary" href="/Account/signin?returnUrl=@Uri.EscapeDataString(Context.Request.Path.ToString())">Sign in or create an account</a>
+                }
+            </div>
+        </div>
+    </div>
+</section>

@@ -1,0 +1,19 @@
+@model List<NoticeModel>
+@{ ViewData["Title"] = "Notifications"; }
+<section class="container community-page"><h1>Notifications</h1>
+<div class="activity-list">
+@if (Model.Count == 0) { <div class="community-empty"><i class="far fa-bell" aria-hidden="true"></i><h2>You’re all caught up</h2><p>No recent notifications to show.</p></div> }
+@foreach (var item in Model) {
+    <article class="activity-item @(!item.Read ? "unread" : "")" data-read-item="@item.Id">
+        <div class="activity-avatar">@if (item.AvatarUrl != null) { <img src="@item.AvatarUrl" alt=""> } else { <i class="fas fa-bell" aria-hidden="true"></i> }</div>
+        <div class="activity-copy">@if (item.Href != null) { <a class="activity-title" href="@item.Href">@item.Title</a> } else { <strong class="activity-title">@item.Title</strong> }
+        @if (item.Detail != null) { <p>@item.Detail</p> }
+        <time datetime="@item.Timestamp.ToString("O")">@item.Timestamp.ToString("d MMM yyyy · HH:mm") UTC</time></div>
+        @if (!item.Read) { <span class="unread-dot" aria-label="Unread"></span> }
+    </article>
+}
+</div>
+@if (Model.Any(x => !x.Read)) { <form method="post" action="/notifications/read" data-mark-read hidden>@Html.AntiForgeryToken()@foreach (var item in Model.Where(x => !x.Read)) { <input type="hidden" name="ids" value="@item.Id"> }</form><p class="read-status" role="status"></p> }
+@if (Model.Count == 30) { <a class="auth-back" href="/notifications?before=@Model.Last().Id">Older notifications →</a> }
+</section>
+@section Scripts { <script src="/assets/js/community.js" asp-append-version="true" defer></script> }

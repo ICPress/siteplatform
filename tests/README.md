@@ -1,0 +1,1 @@
+Run `npm install` then `npm test` (Node 20+). These tests run the shipped client JavaScript against a simulated DOM and stubbed HTTP responses. They do not compile Razor, render pixels, query MySQL, or authenticate with Google. See the deployment checklist for required staging checks.

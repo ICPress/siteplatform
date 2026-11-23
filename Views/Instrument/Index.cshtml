@@ -1,58 +1,616 @@
 @model InstrumentModel
-@{ ViewData["Title"] = Model.Name + " · Instrument dashboard"; }
+@using System.Globalization
+@using System.Text.Json
+@{
+    ViewData["Title"] = Model.Name + " (" + Model.Symbol + ") · " + (Model.HasSecFilings ? "Company research" : "Instrument research");
+    var isAuthenticated = User.Identity?.IsAuthenticated == true;
+    var canViewMemberSections = isAuthenticated && !Model.ViewLimitExceeded;
+    var nearestGex = Model.FutureGex.FirstOrDefault();
+    var listingPath = "/instrument/" + Uri.EscapeDataString(Model.CountryCode) + "/" + Uri.EscapeDataString(Model.Exchange) + "/" + Uri.EscapeDataString(Model.Symbol);
+    var hasLabels = Model.HasPineScript && Model.HasPineLabels;
+    var returnUrl = Uri.EscapeDataString(Context.Request.Path.Value ?? "/");
+    var currentYear = DateTime.UtcNow.Year;
+    var availableYears = Model.AvailablePeriods.Years.ToList();
+    if (!availableYears.Contains(currentYear)) availableYears.Insert(0, currentYear);
+    var availablePeriodsJson = JsonSerializer.Serialize(Model.AvailablePeriods, new JsonSerializerOptions(JsonSerializerDefaults.Web));
+    var packReturnUrl = Uri.EscapeDataString(listingPath + "/research-pack");
+    var countryMarketPath = "/market/" + Uri.EscapeDataString(Model.CountryCode.ToLowerInvariant());
+    var countryMarketName = Model.CountryCode.ToUpperInvariant() + " Market";
+    var reportingCurrencyCode = (Model.ReportingCurrency ?? "").Trim().ToUpperInvariant();
+    var reportingCurrencySymbol = reportingCurrencyCode switch
+    {
+        "USD" => "$", "EUR" => "€", "GBP" => "£", "JPY" => "¥", "CNY" => "¥",
+        "CAD" => "CA$", "AUD" => "A$", "CHF" => "CHF", "INR" => "₹",
+        "SEK" => "kr", "NOK" => "kr", "DKK" => "kr", "HKD" => "HK$",
+        "SGD" => "S$", "KRW" => "₩", "TWD" => "NT$", "BRL" => "R$",
+        "MXN" => "MX$", "PLN" => "zł", "ZAR" => "R", _ => reportingCurrencyCode
+    };
+    var reportingCurrencyDisplay = string.IsNullOrWhiteSpace(reportingCurrencyCode)
+        ? "" : reportingCurrencySymbol == reportingCurrencyCode
+            ? reportingCurrencyCode : reportingCurrencySymbol + " " + reportingCurrencyCode;
+    var headerDescriptorParts = new List<string>();
+    if (Model.HasSecFilings) headerDescriptorParts.Add("Financial context");
+    if (Model.HasPriceStructureAnalysis) headerDescriptorParts.Add("Market levels");
+    if (Model.HasFutureGex) headerDescriptorParts.Add("Institutional GEX positioning");
+    var headerDescriptor = string.Join(" · ", headerDescriptorParts);
+    var referenceClose = Model.Snapshot.ClosePrice;
+    var institutionalGexDate = nearestGex?.ExpirationDate ?? Model.PatternPreview.GexExpirationDate;
+    string PutWallRole(decimal? price) => !price.HasValue || !referenceClose.HasValue
+        ? "Dynamic" : referenceClose.Value > price.Value ? "Support" : "Dynamic";
+    string CallWallRole(decimal? price) => !price.HasValue || !referenceClose.HasValue
+        ? "Dynamic" : referenceClose.Value < price.Value ? "Resistance" : "Dynamic";
+    string RoleClass(string role) => role.ToLowerInvariant() + "-role";
+    string PinClass(string role) => role.ToLowerInvariant() + "-pin";
+    string WallDelta(decimal? price) => price.HasValue && referenceClose is > 0
+        ? ((price.Value / referenceClose.Value - 1m) * 100m).ToString("+0.000;-0.000;0.000", CultureInfo.InvariantCulture) + "% vs close"
+        : "Close comparison unavailable";
+
+    var levelItems = (Model.HasPriceStructureAnalysis ? Model.PivotLevels : []).Select(item => new {
+        name = item.LevelName, category = item.LevelType, start = item.RangeStart ?? item.FixedPrice ?? item.RangeEnd,
+        end = item.RangeEnd ?? item.FixedPrice ?? item.RangeStart,
+        description = item.Description, formula = item.Formula, date = item.AnalysisDate
+    }).ToList();
+    foreach (var row in Model.FutureGex)
+    {
+        if (row.PutWallPrice.HasValue) levelItems.Add(new { name = "GEX put wall · " + row.ExpirationDate, category = "GEX", start = row.PutWallPrice, end = row.PutWallPrice, description = "Options positioning level · expiration " + row.ExpirationDate, formula = (string?)null, date = row.AnalysisDate });
+        if (row.CallWallPrice.HasValue) levelItems.Add(new { name = "GEX call wall · " + row.ExpirationDate, category = "GEX", start = row.CallWallPrice, end = row.CallWallPrice, description = "Options positioning level · expiration " + row.ExpirationDate, formula = (string?)null, date = row.AnalysisDate });
+        if (row.GammaFlipPrice.HasValue) levelItems.Add(new { name = "GEX gamma flip · " + row.ExpirationDate, category = "GEX", start = row.GammaFlipPrice, end = row.GammaFlipPrice, description = "Options positioning level · expiration " + row.ExpirationDate, formula = row.GammaFlipMethod, date = row.AnalysisDate });
+    }
+    var levelJson = JsonSerializer.Serialize(levelItems, new JsonSerializerOptions(JsonSerializerDefaults.Web));
+}
 @section MetaTags { <meta name="robots" content="noindex,follow"> }
-<section class="container instrument-page">
-    <div class="instrument-heading">
-        <div>
-            <span class="beta-kicker">Instrument dashboard</span>
-            <h1>@Model.Name <span>(@Model.Symbol)</span></h1>
-            <p>@Model.Exchange · @Model.CountryCode</p>
+<header class="instrument-page-header">
+    <div class="container instrument-page-header-inner">
+        <nav class="instrument-breadcrumbs" aria-label="Breadcrumb">
+            <a href="@countryMarketPath">@countryMarketName</a>
+            @if (Model.HasSecFilings && !string.IsNullOrWhiteSpace(Model.GroupName))
+            {
+                <span aria-hidden="true">/</span><a href="@countryMarketPath/group/@Uri.EscapeDataString(Model.GroupName)">@Model.GroupName</a>
+            }
+            <span aria-hidden="true">/</span><strong>@Model.Symbol</strong>
+        </nav>
+        <div class="instrument-header-title">
+            <span class="instrument-category-badge">@(Model.HasSecFilings ? "Company research" : "Instrument research")</span>
+            <h1 class="instrument-title">@Model.Name <span>(@Model.Symbol)</span></h1>
+        </div>
+        <div class="instrument-meta-row">
+            <div class="instrument-meta-primary">
+                <span class="instrument-meta-avatar" aria-hidden="true"><i class="fas fa-chart-pie"></i></span>
+                @if (!string.IsNullOrWhiteSpace(headerDescriptor))
+                {
+                    <span class="instrument-meta-copy">@headerDescriptor</span>
+                }
+                <span class="instrument-meta-market">@Model.Exchange · @Model.CountryCode</span>
+            </div>
+            <div class="instrument-meta-stats" aria-label="Instrument metadata">
+                @if (Model.PatternPreview.TotalCount > 0)
+                {
+                    <a class="identified-patterns-summary" href="#pricePatternsSection" aria-label="@Model.PatternPreview.TotalCount identified price patterns. View price patterns section.">
+                        <span>@Model.PatternPreview.TotalCount identified patterns</span>
+                        <span class="identified-patterns-icons" aria-hidden="true">
+                            @foreach (var pattern in Model.PatternPreview.Patterns.Take(6))
+                            {
+                                <span class="pattern-mini-icon tone-@pattern.Tone">@Html.Raw(PricePatternVisuals.Svg(pattern.Key))</span>
+                            }
+                            @if (Model.PatternPreview.Patterns.Count > 6)
+                            {
+                                <span class="pattern-mini-more">+@(Model.PatternPreview.Patterns.Count - 6)</span>
+                            }
+                        </span>
+                    </a>
+                }
+                @if (!string.IsNullOrWhiteSpace(reportingCurrencyDisplay))
+                {
+                    <span class="instrument-meta-stat"><span class="instrument-currency-label">@reportingCurrencyDisplay</span></span>
+                }
+            </div>
         </div>
     </div>
-    <section id="marketExpandRegion" class="dashboard-hero">
-        <div class="instrument-market-layout @(Model.HasSecFilings ? "" : "without-fair-values")">
-            <div class="market-chart-panel">
-                <div class="market-panel-head"><span class="market-kicker">@Model.Symbol · Market chart</span><div class="market-panel-actions">
-                    <button type="button" id="chartModeToggle" class="market-chart-mode-toggle" aria-pressed="false" aria-controls="technical-chart"><i class="fas fa-chart-line" aria-hidden="true"></i><span>Technical chart</span></button>
-                    <button type="button" id="marketExpandToggle" class="market-expand-toggle" aria-expanded="false" aria-controls="marketExpandRegion"><i class="fas fa-expand" aria-hidden="true"></i><span>Expand</span></button>
-                </div></div>
-                <div class="tv-chart-shell">
-                    <div id="instrument-chart" class="instrument-chart" data-symbol="@Model.TradingViewSymbol" aria-label="@Model.Symbol market chart"><p class="chart-fallback">Loading chart…</p></div>
-                    <div id="technical-chart" class="gated-technical" hidden>
-                        <div class="technical-chart-preview" aria-hidden="true" inert><svg viewBox="0 0 800 400" preserveAspectRatio="none" focusable="false"><path class="chart-grid" d="M0 80H800M0 160H800M0 240H800M0 320H800M100 0V400M250 0V400M400 0V400M550 0V400M700 0V400"/><path class="chart-line" d="M0 310L35 280 60 305 90 230 120 250 150 215 175 245 210 180 245 220 280 165 320 185 360 110 405 170 450 130 490 150 530 80 575 110 620 70 665 95 710 40 755 65 800 25"/><path class="chart-levels" d="M0 100H800M0 200H800M0 300H800"/></svg></div>
-                        <div class="technical-beta-gate"><div class="beta-gate-card">
-                            @if (User.Identity?.IsAuthenticated == true) { <h2>You’re on the beta waiting list</h2><p>We’ll let you know when technical insights are ready.</p> }
-                            else { <h2>Join the beta</h2><p>Sign in to join the waiting list for technical insights.</p><a class="btn btn-primary" href="/Account/signin?returnUrl=@Uri.EscapeDataString(Context.Request.Path.ToString())">Sign in to join beta</a> }
-                        </div></div>
-                    </div>
+</header>
+<section class="container instrument-page" id="instrumentDashboard"
+         data-symbol="@Model.Symbol" data-country="@Model.CountryCode" data-market="@Model.Exchange"
+         data-authenticated="@canViewMemberSections.ToString().ToLowerInvariant()"
+         data-logged-in="@isAuthenticated.ToString().ToLowerInvariant()"
+         data-view-limit-exceeded="@Model.ViewLimitExceeded.ToString().ToLowerInvariant()"
+         data-beta-enabled="@Model.BetaEnabled.ToString().ToLowerInvariant()" data-current-year="@currentYear"
+         data-bars-url="@listingPath/bars" data-pine-url="@listingPath/pine-scripts"
+         data-fundamentals-url="@listingPath/fundamentals"
+         data-average-roc="@(Model.Roc.AverageAbsoluteDailyRoc?.ToString(CultureInfo.InvariantCulture) ?? "")"
+         data-roc-sample="@Model.Roc.SampleSize">
+    <div class="instrument-dashboard-layout">
+    <nav class="research-section-tabs" aria-label="Research sections">
+        <a href="#overviewSection" aria-current="location">Overview</a>
+        <a href="#pricePatternsSection">Price patterns</a>
+        <a href="#marketExpandRegion">Market chart</a>
+        @if (Model.HasSecFilings) { <a href="#financialHealthTitle">Financial health</a><a href="#valuationTitle">Valuation</a> }
+    </nav>
+
+    <div class="instrument-dashboard-content">
+    @if (Model.ShowResearchPack)
+    {
+        <section class="instrument-section ai-research-section @(Model.ViewLimitExceeded ? "member-gated-shell research-pack-gated" : "")" aria-labelledby="aiResearchTitle">
+            <div class="@(Model.ViewLimitExceeded ? "member-gated-content is-locked" : "")">
+                <div class="instrument-section-head"><div><span class="beta-kicker" id="aiResearchTitle"><i class="fas fa-brain" aria-hidden="true"></i> AI-Ready Research Pack</span></div></div>
+                <div class="ai-research-summary">
+                    <p>Use this research pack to explore @Model.Symbol’s financial metrics, technical levels and metric definitions with an AI assistant or in your own analysis.</p>
+                    @if (Model.ViewLimitExceeded)
+                    {
+                        <button class="ai-pack-download" type="button" disabled aria-disabled="true"><span>Download</span><i class="fas fa-download" aria-hidden="true"></i></button>
+                    }
+                    else
+                    {
+                        <a class="ai-pack-download" href="@(isAuthenticated ? listingPath + "/research-pack" : "/Account/signin?returnUrl=" + packReturnUrl)" aria-label="Download the @Model.Symbol AI research pack"><span>Download</span><i class="fas fa-download" aria-hidden="true"></i></a>
+                    }
+                </div>
+                <div class="ai-pack-contents">
+                    <span class="ai-pack-label">Research contents included for this instrument:</span>
+                    <ul class="ai-pack-list">
+                        @if (Model.HasSecFilings)
+                        {
+                            <li>Financial metrics</li>
+                        }
+                        @if (Model.HasPriceStructureAnalysis)
+                        {
+                            <li>@(Model.HasFutureGex ? "Technical levels and future options positioning" : "Technical levels")</li>
+                        }
+                        @if (Model.HasSecFilings)
+                        {
+                            <li>Metrics guide</li>
+                        }
+                    </ul>
                 </div>
             </div>
-            <div class="instrument-levels"><aside aria-label="GEX levels available during beta" class="technicals-panel"><div class="technicals-kicker">GEX · Latest daily close</div><h2 class="technicals-title">Key option levels</h2><p class="technicals-intro">Put wall is treated as support while latest price is above it; call wall is treated as resistance while price is below it, otherwise both are dynamic (yellow).</p><div class="technical-level close-level"><div class="technical-label">Latest close</div><div class="technical-value concealed-value" aria-hidden="true">••••••</div></div><div class="technical-level support-level"><div class="technical-copy"><div class="technical-label">Put wall</div><span class="level-role support-role concealed-value" aria-hidden="true">••••••</span></div><div class="technical-value-wrap"><div class="technical-value concealed-value" aria-hidden="true">••••••</div><small class=" concealed-value" aria-hidden="true">••••••</small></div></div><div class="technical-level resistance-level"><div class="technical-copy"><div class="technical-label">Call wall</div><span class="level-role resistance-role concealed-value" aria-hidden="true">••••••</span></div><div class="technical-value-wrap"><div class="technical-value concealed-value" aria-hidden="true">••••••</div><small class=" concealed-value" aria-hidden="true">••••••</small></div></div><div class="technical-map"><div class="technical-map-label">GEX price level map</div><div class="level-track"><span class="level-pin close-pin" style="--level-position:53.9%"></span><span class="level-pin support-pin" style="--level-position:23.1%"></span><span class="level-pin resistance-pin" style="--level-position:76.9%"></span></div><div class="level-scale"><span class=" concealed-value" aria-hidden="true">••••••</span><span class=" concealed-value" aria-hidden="true">••••••</span><span class=" concealed-value" aria-hidden="true">••••••</span></div></div></aside></div>
-            @if (Model.HasSecFilings)
+            @if (Model.ViewLimitExceeded)
             {
-            <div class="instrument-fair-values"><div class="sidebar-widget" id="calculatedFairValuesWidget"><h3 class="widget-title">Calculated fair values</h3><div class="sidebar-fv-basis" id="sidebarFairValueBasis">Estimates available during beta</div><div class="sidebar-fv-grid"><div class="sidebar-fv-card primary"><div class="sidebar-fv-label">Midpoint fair value</div><div class="sidebar-fv-value concealed-value" id="sidebarMidpointValue" aria-hidden="true">••••••</div></div><div class="sidebar-fv-card"><div class="sidebar-fv-label">Cash Flow DCF</div><div class="sidebar-fv-value concealed-value" id="sidebarFormula1Value" aria-hidden="true">••••••</div></div><div class="sidebar-fv-card"><div class="sidebar-fv-label">Revenue Unit Economics</div><div class="sidebar-fv-value concealed-value" id="sidebarFormula2Value" aria-hidden="true">••••••</div></div></div></div></div>
+                <div class="member-gate-overlay">
+                    <div class="beta-gate-card limit-gate-card">
+                        <i class="fas fa-gauge-high" aria-hidden="true"></i>
+                        <h3>Daily instrument-view limit reached</h3>
+                        <p>Due to heavy load, we limit access to five instruments per user every 24 hours for accounts not enrolled in the beta. Join the beta to request unlimited access.</p>
+                        @if (Model.BetaJoined)
+                        {
+                            <p>You’re on the beta waitlist. Unlimited access becomes available when beta access is enabled for your account.</p>
+                        }
+                        else
+                        {
+                            <button class="btn btn-primary beta-join-button" type="button">Join beta waitlist</button>
+                        }
+                    </div>
+                </div>
+            }
+        </section>
+    }
+
+    <section class="instrument-section price-intelligence-section" id="overviewSection" aria-labelledby="priceIntelligenceTitle">
+        <div class="instrument-section-head">
+            <div><span class="beta-kicker">PRICE LEVEL INTELLIGENCE</span><h2 id="priceIntelligenceTitle">@Model.Symbol price level map</h2></div>
+        </div>
+        <p class="price-map-intro">Compare technical levels, options positioning and analyst projections across the selected Week, Month or Year horizon. Each horizon adds levels beyond those shown in shorter ranges.</p>
+        @if (!Model.HasPriceStructureAnalysis)
+        {
+            <p class="research-analysis-pending" role="status"><i class="fas fa-clock" aria-hidden="true"></i> Price structure analysis is ongoing for @Model.Symbol. Please check back in a few days for updated price intelligence.</p>
+        }
+        @if (Model.HasPriceStructureAnalysis)
+        {
+            <div class="member-gated-shell price-level-gate" id="priceLevelGate">
+                <div class="member-gated-content @(canViewMemberSections ? "" : "is-locked")">
+                    <div class="research-levelmap" id="priceLevelMap"
+                         data-reference-close="@(Model.Snapshot.ClosePrice?.ToString(CultureInfo.InvariantCulture) ?? "")"
+                         data-reference-date="@Model.Snapshot.LatestCloseDate">
+                        <div class="lm-topline">
+                            <div><span class="lm-key-label">REFERENCE CLOSE</span><strong class="lm-close-number" id="lm-reference-close">—</strong><span class="lm-date" id="lm-reference-date">@Model.Snapshot.LatestCloseDate</span></div>
+                            <div class="lm-roc-summary"><span class="lm-key-label">HISTORICAL ROC FILTER</span><strong id="lm-envelope">—</strong><span class="lm-date" id="lm-roc-sample">Loading return history…</span></div>
+                        </div>
+                        <div class="lm-toolbar lm-horizon-toolbar">
+                            <div class="lm-time-tabs" role="tablist" aria-label="ROC timespan">
+                                <button type="button" role="tab" id="lm-horizon-week" data-horizon="week" aria-selected="true" aria-controls="lm-horizon-panel">Week <span class="lm-tab-count" id="lm-count-week"></span></button>
+                                <button type="button" role="tab" id="lm-horizon-month" data-horizon="month" aria-selected="false" tabindex="-1" aria-controls="lm-horizon-panel">Month <span class="lm-tab-count" id="lm-count-month"></span></button>
+                                <button type="button" role="tab" id="lm-horizon-year" data-horizon="year" aria-selected="false" tabindex="-1" aria-controls="lm-horizon-panel">Year <span class="lm-tab-count" id="lm-count-year"></span></button>
+                            </div>
+                            <span class="lm-horizon-note" id="lm-horizon-note">5 trading days</span>
+                        </div>
+                        <div class="lm-toolbar lm-category-toolbar"><div class="lm-category-tabs" role="group" aria-label="Level category">
+                                <button type="button" data-category="all" aria-pressed="true">All levels</button>
+                            <button type="button" data-category="TECHNICAL" aria-pressed="false">Technicals</button>
+                            <button type="button" data-category="ANALYST" aria-pressed="false">Analyst projections</button>
+                            <button type="button" data-category="GEX" aria-pressed="false">GEX</button>
+                            </div>
+                        </div>
+                        <p class="lm-filter-status" id="lm-filter-status" role="status" aria-live="polite"></p>
+                        <div class="lm-chart-scroller" id="lm-horizon-panel" role="tabpanel" aria-labelledby="lm-horizon-week" tabindex="0">
+                            <div class="lm-chart">
+                                <div class="lm-grid-head"><span>LEVEL / SOURCE</span><div class="lm-plot-axis" id="lm-axis" aria-label="Percentage distance axis"></div><span>PRICE (USD)</span><span>DISTANCE</span></div>
+                                <div class="lm-rows" id="lm-rows"></div>
+                                <div class="lm-grid-foot"><span></span><span id="lm-range-caption">Scale adjusts to displayed levels</span><span></span><span></span></div>
+                            </div>
+                        </div>
+                        <div class="lm-reading">
+                            <p><strong>Read the map:</strong> 0% is the dated reference close above. Each range retains both endpoints; distances and the axis update with the close.</p>
+                            <p><strong>Read the horizons:</strong> Week ≤ 5-day ROC envelope; Month adds levels within 21 days; Year adds levels within 252 days. These are movement filters, not arrival dates or forecasts.</p>
+                        </div>
+                    </div>
+                </div>
+                @if (!canViewMemberSections)
+                {
+                    <div class="member-gate-overlay">
+                        <div class="beta-gate-card limit-gate-card">
+                            @if (Model.ViewLimitExceeded)
+                            {
+                                <i class="fas fa-gauge-high" aria-hidden="true"></i>
+                                <h3>Daily instrument-view limit reached</h3>
+                                <p>Due to heavy load, we limit access to five instruments per user every 24 hours for accounts not enrolled in the beta. Join the beta to request unlimited access.</p>
+                                @if (Model.BetaJoined) { <p>You’re on the beta waitlist. Unlimited access becomes available when beta access is enabled for your account.</p> }
+                                else { <button class="btn btn-primary beta-join-button" type="button">Join beta waitlist</button> }
+                            }
+                            else
+                            {
+                                <i class="fas fa-lock" aria-hidden="true"></i><h3>Sign in to view price levels</h3><p>Technical, analyst and options levels are available to signed-in members.</p><a class="btn btn-primary" href="/Account/signin?returnUrl=@returnUrl">Sign in</a>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    </section>
+
+    <section class="instrument-section price-patterns-section" id="pricePatternsSection" aria-labelledby="pricePatternsTitle">
+        <div class="instrument-section-head">
+            <div><span class="beta-kicker">PRICE PATTERN INTELLIGENCE</span><h2 id="pricePatternsTitle">Identified price patterns</h2></div>
+            <span class="pattern-count">@Model.PatternPreview.TotalCount identified</span>
+        </div>
+        @if (!Model.HasPineScript)
+        {
+            <p class="research-analysis-pending" role="status"><i class="fas fa-clock" aria-hidden="true"></i> Price structure analysis is ongoing for @Model.Symbol. Please check back in a few days for updated price intelligence.</p>
+        }
+        else
+        {
+            <div class="member-gated-shell">
+                <div class="member-gated-content @(canViewMemberSections ? "" : "is-locked")">
+                    @if (canViewMemberSections && Model.PatternDetails != null)
+                    {
+                        var availablePatterns = Model.PatternDetails.Patterns;
+                        var categories = availablePatterns.GroupBy(x => x.Category).ToList();
+                        <section class="pattern-board" aria-label="Latest active chart patterns">
+                            <div class="pattern-board-head">
+                                <div>
+                                    <span class="pattern-board-kicker">Latest active patterns</span>
+                                    <h3 class="pattern-board-title">@Model.Symbol chart pattern signals</h3>
+                                </div>
+                                <div class="pattern-board-actions"><span class="pattern-count">@availablePatterns.Count active</span></div>
+                            </div>
+                            @if (availablePatterns.Count == 0)
+                            {
+                                <p class="financial-empty">No active price patterns are identified in the latest analysis.</p>
+                            }
+                            else
+                            {
+                                @foreach (var group in categories)
+                                {
+                                    <div class="pattern-group">
+                                        <h4 class="pattern-group-title">@group.Key</h4>
+                                        <div class="pattern-grid">
+                                            @foreach (var pattern in group)
+                                            {
+                                                <div class="pattern-btn pattern-static tone-@pattern.Tone" aria-label="@pattern.Name">
+                                                    <span class="pattern-icon">@Html.Raw(PricePatternVisuals.Svg(pattern.Key))</span>
+                                                    <span class="pattern-label">@pattern.Name</span>
+                                                </div>
+                                            }
+                                        </div>
+                                    </div>
+                                }
+                            }
+                        </section>
+                    }
+                    else
+                    {
+                        <div class="pattern-board" aria-hidden="true">
+                            <div class="pattern-board-head">
+                                <div><span class="pattern-board-kicker">Latest active patterns</span><h3 class="pattern-board-title">Chart pattern signals</h3></div>
+                                <span class="pattern-count">@Model.PatternPreview.TotalCount identified</span>
+                            </div>
+                            <div class="pattern-preview-placeholder"><span></span><span></span><span></span><span></span><span></span><span></span></div>
+                        </div>
+                    }
+                </div>
+                @if (!canViewMemberSections)
+                {
+                    <div class="member-gate-overlay">
+                        <div class="beta-gate-card limit-gate-card">
+                            @if (Model.ViewLimitExceeded)
+                            {
+                                <i class="fas fa-gauge-high" aria-hidden="true"></i>
+                                <h3>Daily instrument-view limit reached</h3>
+                                <p>Due to heavy load, we limit access to five instruments per user every 24 hours for accounts not enrolled in the beta. Join the beta to request unlimited access.</p>
+                                @if (Model.BetaJoined) { <p>You’re on the beta waitlist. Unlimited access becomes available when beta access is enabled for your account.</p> }
+                                else { <button class="btn btn-primary beta-join-button" type="button">Join beta waitlist</button> }
+                            }
+                            else
+                            {
+                                <i class="fas fa-lock" aria-hidden="true"></i>
+                                <h3>Sign in to view identified patterns</h3>
+                                <p>Latest chart patterns and options-wall signals are available to signed-in members.</p>
+                                <a class="btn btn-primary" href="/Account/signin?returnUrl=@returnUrl">Sign in</a>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+        <a class="pattern-section-link" href="/scanner/price_patterns">Find more instruments based on price patterns here <i class="fas fa-arrow-right" aria-hidden="true"></i></a>
+    </section>
+
+    <section id="marketExpandRegion" class="dashboard-hero instrument-section-panel" aria-labelledby="marketSectionTitle">
+        <div class="instrument-section-head market-section-intro">
+            <div><span class="beta-kicker">TECHNICAL CONTEXT</span><h2 id="marketSectionTitle">Price &amp; technical context</h2></div>
+        </div>
+        <p class="price-map-intro">Review price action and trend structure on the technical chart, then compare it with options positioning and key levels.</p>
+        <div class="instrument-market-layout @(Model.ShowGexSection ? "has-gex" : "no-gex")">
+            <div class="market-chart-panel">
+                <div class="market-panel-head">
+                    <span class="market-kicker" id="marketChartKicker">@Model.Symbol · Market chart</span>
+                    <div class="market-panel-actions">
+                        @if (Model.HasPineScript)
+                        {
+                            <div class="technical-view-controls" id="technicalViewControls" hidden>
+                                <label class="technical-timeframe-picker" for="technicalTimeframeSelect">Timeframe
+                                    <select id="technicalTimeframeSelect" aria-label="Technical chart timeframe"><option value="1D" selected>1D</option><option value="1W">1W</option></select>
+                                </label>
+                                @if (hasLabels)
+                                {
+                                    <button type="button" class="technical-view-toggle" id="technicalLabelsToggle" aria-pressed="false">Labels</button>
+                                }
+                            </div>
+                            <button type="button" id="chartModeToggle" class="market-chart-mode-toggle" aria-pressed="@canViewMemberSections.ToString().ToLowerInvariant()" aria-controls="technical-chart">
+                                <i class="fas fa-chart-line" aria-hidden="true"></i><span>@(canViewMemberSections ? "Live chart" : "Technical chart")</span>
+                            </button>
+                        }
+                        <button type="button" id="marketExpandToggle" class="market-expand-toggle" aria-expanded="false" aria-controls="marketExpandRegion">
+                            <i class="fas fa-expand" aria-hidden="true"></i><span>Expand</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="tv-chart-shell">
+                    <div id="instrument-chart" class="instrument-chart" data-symbol="@Model.TradingViewSymbol" aria-label="@Model.Symbol market chart">
+                        <p class="chart-fallback">Loading chart…</p>
+                    </div>
+                    @if (Model.HasPineScript)
+                    {
+                        <div id="technical-chart" class="technical-chart" hidden aria-label="@Model.Symbol price structure chart">
+                            @if (!canViewMemberSections)
+                            {
+                                <div class="technical-chart-preview" aria-hidden="true"><svg viewBox="0 0 800 400" preserveAspectRatio="none"><path d="M0 80H800M0 160H800M0 240H800M0 320H800"/><path d="M0 310L35 280 60 305 90 230 120 250 150 215 175 245 210 180 245 220 280 165 320 185 360 110 405 170 450 130 490 150 530 80 575 110 620 70 665 95 710 40 755 65 800 25"/></svg></div>
+                            }
+                        </div>
+                        @if (!canViewMemberSections)
+                        {
+                            <div id="technicalChartGate" class="chart-login-gate" hidden>
+                                <div class="beta-gate-card">
+                                    @if (Model.ViewLimitExceeded)
+                                    {
+                                        <i class="fas fa-gauge-high" aria-hidden="true"></i>
+                                        <h2>Daily instrument-view limit reached</h2>
+                                        <p>Due to heavy load, we limit access to five instruments per user every 24 hours for accounts not enrolled in the beta. Join the beta to request unlimited access.</p>
+                                        @if (Model.BetaJoined) { <p>You’re on the beta waitlist. Unlimited access becomes available when beta access is enabled for your account.</p> }
+                                        else { <button class="btn btn-primary beta-join-button" type="button">Join beta waitlist</button> }
+                                    }
+                                    else
+                                    {
+                                        <i class="fas fa-lock" aria-hidden="true"></i>
+                                        <h2>Sign in to view the technical chart</h2>
+                                        <p>Technical chart access is available to signed-in members.</p>
+                                        <a class="btn btn-primary" href="/Account/signin?returnUrl=@returnUrl">Sign in</a>
+                                    }
+                                </div>
+                            </div>
+                        }
+                    }
+                </div>
+                @if (Model.HasPineScript)
+                {
+                }
+            </div>
+
+            @if (Model.ShowGexSection)
+            {
+                <aside class="instrument-gex-panel member-gated-shell" aria-label="Week Open GEX">
+                    <div class="member-gated-content @(canViewMemberSections ? "" : "is-locked")">
+                        <div class="technicals-kicker">INSTITUTIONAL GEX@(string.IsNullOrWhiteSpace(institutionalGexDate) ? "" : " · " + institutionalGexDate)</div>
+                        <h2 class="technicals-title">Week Open GEX</h2>
+                        @if (nearestGex != null)
+                        {
+                        <p class="technicals-intro">The call wall is resistance until price crosses above it, then it becomes dynamic. The put wall is support until price crosses below it, then it becomes dynamic.</p>
+                        <div class="technical-level close-level">
+                            <span class="technical-label">Latest close</span>
+                            <strong class="technical-value">@(referenceClose?.ToString("N3", CultureInfo.InvariantCulture) ?? "—")</strong>
+                        </div>
+                        @if (nearestGex.PutWallPrice.HasValue)
+                        {
+                            var wallRole = PutWallRole(nearestGex.PutWallPrice);
+                            <div class="technical-level">
+                                <div class="technical-copy"><span class="technical-label">Put wall</span><span class="level-role @RoleClass(wallRole)">@wallRole</span></div>
+                                <div class="technical-value-wrap"><strong class="technical-value">@nearestGex.PutWallPrice.Value.ToString("N3", CultureInfo.InvariantCulture)</strong><small>@WallDelta(nearestGex.PutWallPrice)</small></div>
+                            </div>
+                        }
+                        @if (nearestGex.CallWallPrice.HasValue)
+                        {
+                            var wallRole = CallWallRole(nearestGex.CallWallPrice);
+                            <div class="technical-level">
+                                <div class="technical-copy"><span class="technical-label">Call wall</span><span class="level-role @RoleClass(wallRole)">@wallRole</span></div>
+                                <div class="technical-value-wrap"><strong class="technical-value">@nearestGex.CallWallPrice.Value.ToString("N3", CultureInfo.InvariantCulture)</strong><small>@WallDelta(nearestGex.CallWallPrice)</small></div>
+                            </div>
+                        }
+                        @if (nearestGex.GammaFlipPrice.HasValue)
+                        {
+                            <div class="technical-level"><div class="technical-copy"><span class="technical-label">Gamma flip</span><span class="level-role dynamic-role">Dynamic</span></div><div class="technical-value-wrap"><strong class="technical-value">@nearestGex.GammaFlipPrice.Value.ToString("N3", CultureInfo.InvariantCulture)</strong><small>@WallDelta(nearestGex.GammaFlipPrice)</small></div></div>
+                        }
+                        @if (referenceClose is > 0 && nearestGex.PutWallPrice.HasValue && nearestGex.CallWallPrice.HasValue)
+                        {
+                            var refClose = referenceClose.Value;
+                            var put = nearestGex.PutWallPrice.Value;
+                            var call = nearestGex.CallWallPrice.Value;
+                            var priceMin = Math.Min(Math.Min(refClose, put), call);
+                            var priceMax = Math.Max(Math.Max(refClose, put), call);
+                            var pricePad = Math.Max(0.01m, (priceMax - priceMin) * 0.12m);
+                            priceMin = Math.Max(0m, priceMin - pricePad);
+                            priceMax += pricePad;
+                            var span = Math.Max(0.01m, priceMax - priceMin);
+                            var closePos = (refClose - priceMin) / span * 100m;
+                            var putPos = (put - priceMin) / span * 100m;
+                            var callPos = (call - priceMin) / span * 100m;
+                            <div class="technical-map" aria-label="GEX price level map">
+                                <div class="technical-map-label">GEX price level map</div>
+                                <div class="level-track">
+                                    <span class="level-pin close-pin" title="Latest close" style="--level-position:@closePos.ToString(CultureInfo.InvariantCulture)%"></span>
+                                    <span class="level-pin @PinClass(PutWallRole(nearestGex.PutWallPrice))" title="Put wall · @PutWallRole(nearestGex.PutWallPrice)" style="--level-position:@putPos.ToString(CultureInfo.InvariantCulture)%"></span>
+                                    <span class="level-pin @PinClass(CallWallRole(nearestGex.CallWallPrice))" title="Call wall · @CallWallRole(nearestGex.CallWallPrice)" style="--level-position:@callPos.ToString(CultureInfo.InvariantCulture)%"></span>
+                                </div>
+                                <div class="level-scale"><span>@priceMin.ToString("N3", CultureInfo.InvariantCulture)</span><span>@refClose.ToString("N3", CultureInfo.InvariantCulture)</span><span>@priceMax.ToString("N3", CultureInfo.InvariantCulture)</span></div>
+                                <p class="gex-delta-summary">Put wall @WallDelta(put) · Call wall @WallDelta(call)</p>
+                            </div>
+                        }
+                        }
+                        else
+                        {
+                            <div class="technical-level"><span class="technical-label">Put wall</span><strong class="technical-value">•••••</strong></div>
+                            <div class="technical-level"><span class="technical-label">Call wall</span><strong class="technical-value">•••••</strong></div>
+                            <div class="technical-map"><div class="technical-map-label">GEX price level map</div><div class="level-track"></div></div>
+                        }
+                    </div>
+                    @if (!canViewMemberSections)
+                    {
+                        <div class="member-gate-overlay">
+                            <div class="beta-gate-card limit-gate-card">
+                                @if (Model.ViewLimitExceeded)
+                                {
+                                    <i class="fas fa-gauge-high" aria-hidden="true"></i><h3>Daily instrument-view limit reached</h3>
+                                    <p>Due to heavy load, we limit access to five instruments per user every 24 hours for accounts not enrolled in the beta. Join the beta to request unlimited access.</p>
+                                    @if (Model.BetaJoined) { <p>You’re on the beta waitlist. Unlimited access becomes available when beta access is enabled for your account.</p> }
+                                    else { <button class="btn btn-primary beta-join-button" type="button">Join beta waitlist</button> }
+                                }
+                                else
+                                {
+                                    <i class="fas fa-lock" aria-hidden="true"></i><h3>Members only</h3><p>Sign in to view institutional options levels.</p><a class="btn btn-primary" href="/Account/signin?returnUrl=@returnUrl">Sign in</a>
+                                }
+                            </div>
+                        </div>
+                    }
+                </aside>
             }
         </div>
     </section>
-    <div class="instrument-preview">
-        <iframe id="instrument-preview-frame" src="/assets/instrument-preview.html" title="Decorative dashboard preview" tabindex="-1" aria-hidden="true" inert sandbox="" loading="lazy"></iframe>
-        <div class="beta-gate">
-            <div class="beta-gate-card">
-                <div class="beta-lock"><i class="fas fa-lock" aria-hidden="true"></i></div><br>
-                <span class="beta-kicker">Financial health dashboard</span>
-                @if (User.Identity?.IsAuthenticated == true)
+
+    @if (Model.HasSecFilings)
+    {
+        <div class="beta-feature-grid">
+            <section class="instrument-section beta-feature-shell @(Model.BetaEnabled ? "beta-enabled" : "")" aria-labelledby="financialHealthTitle">
+                <div class="member-gated-content @(Model.BetaEnabled ? "" : "is-locked")">
+                    <span class="beta-kicker">Company fundamentals</span><h2 id="financialHealthTitle">Financial health</h2>
+                    @if (Model.BetaEnabled)
+                    {
+                        <div class="financial-period-controls">
+                            <label for="financialYearSelect">Fiscal year</label>
+                            <select id="financialYearSelect">
+                                <option value="" selected>Trailing 12 months</option>
+                                @foreach (var year in availableYears)
+                                {
+                                    <option value="@year">@year</option>
+                                }
+                            </select>
+                            <label for="financialQuarterSelect">Period</label>
+                            <select id="financialQuarterSelect"><option value="">All periods</option></select>
+                        </div>
+                        <div id="financialMetricsOutput" class="financial-metrics-output"><p>Loading financial metrics…</p></div>
+                    }
+                    else
+                    {
+                        <div class="beta-metric-placeholder"><span>Revenue</span><strong>••••••</strong><span>Profitability</span><strong>••••••</strong><span>Cash flow</span><strong>••••••</strong><span>Capital structure</span><strong>••••••</strong></div>
+                        <div class="period-availability"><span>Available reporting years</span>@string.Join(", ", Model.AvailablePeriods.Years)</div>
+                    }
+                </div>
+                @if (!Model.BetaEnabled)
                 {
-                    <h2>You’re on the beta waiting list</h2>
-                    <p>Thanks for joining ICPress. We’ll let you know when instrument insights are ready for you.</p>
-                    <a class="btn btn-primary" href="/">Explore ICPress</a>
+                    <div class="beta-feature-overlay"><div class="beta-gate-card">
+                        @if (!isAuthenticated)
+                        {
+                            <i class="fas fa-lock" aria-hidden="true"></i><h3>Sign in to request beta access</h3><p>Financial health insights are in a limited beta.</p><a class="btn btn-primary" href="/Account/signin?returnUrl=@returnUrl">Sign in</a>
+                        }
+                        else if (Model.BetaJoined)
+                        {
+                            <i class="fas fa-check-circle" aria-hidden="true"></i><h3>You’re on the beta waiting list</h3><p>We’ll contact you when financial health access is available.</p>
+                        }
+                        else
+                        {
+                            <i class="fas fa-lock" aria-hidden="true"></i><h3>Join the financial health beta</h3><p>By joining, you agree that ICPress may contact you about beta access and related research features.</p><button class="btn btn-primary beta-join-button" type="button">Join beta waitlist</button>
+                        }
+                    </div></div>
                 }
                 else
                 {
-                    <h2>Sign in to view the details</h2>
-                    <p>Create an account or sign in to join the beta waiting list. Instrument insights will unlock when beta access is available.</p>
-                    <a class="btn btn-primary" href="/Account/signin?returnUrl=@Uri.EscapeDataString(Context.Request.Path.ToString())">Sign in or create an account</a>
+                    <div class="beta-enabled-note"><i class="fas fa-unlock" aria-hidden="true"></i> Beta access enabled for this account.</div>
                 }
-            </div>
+            </section>
+            <section class="instrument-section beta-feature-shell @(Model.BetaEnabled ? "beta-enabled" : "")" aria-labelledby="valuationTitle">
+                <div class="member-gated-content @(Model.BetaEnabled ? "" : "is-locked")">
+                    <span class="beta-kicker">Valuation framework</span><h2 id="valuationTitle">Valuation</h2>
+                    @if (Model.BetaEnabled)
+                    {
+                        <p class="financial-empty">Beta access is enabled. Valuation model output is not yet available for this instrument.</p>
+                    }
+                    else
+                    {
+                        <div class="beta-valuation-placeholder"><div><span>Midpoint fair value</span><strong>••••••</strong></div><div><span>Cash Flow DCF</span><strong>••••••</strong></div><div><span>Revenue unit economics</span><strong>••••••</strong></div></div>
+                    }
+                    <div class="period-availability">Reporting periods: @Model.AvailablePeriods.Quarters.Sum(x => x.AvailableQuarters.Length) quarters available</div>
+                </div>
+                @if (!Model.BetaEnabled)
+                {
+                    <div class="beta-feature-overlay"><div class="beta-gate-card">
+                        @if (!isAuthenticated)
+                        {
+                            <i class="fas fa-lock" aria-hidden="true"></i><h3>Sign in to request beta access</h3><p>Valuation tools are in a limited beta.</p><a class="btn btn-primary" href="/Account/signin?returnUrl=@returnUrl">Sign in</a>
+                        }
+                        else if (Model.BetaJoined)
+                        {
+                            <i class="fas fa-check-circle" aria-hidden="true"></i><h3>You’re on the beta waiting list</h3><p>We’ll contact you when valuation access is available.</p>
+                        }
+                        else
+                        {
+                            <i class="fas fa-lock" aria-hidden="true"></i><h3>Join the valuation beta</h3><p>By joining, you agree that ICPress may contact you about beta access and related research features.</p><button class="btn btn-primary beta-join-button" type="button">Join beta waitlist</button>
+                        }
+                    </div></div>
+                }
+                else
+                {
+                    <div class="beta-enabled-note"><i class="fas fa-unlock" aria-hidden="true"></i> Beta access enabled for this account.</div>
+                }
+            </section>
         </div>
+    }
+    @if (isAuthenticated)
+    {
+        <form id="betaWaitlistForm" method="post" action="@listingPath/beta-waitlist" hidden>
+            @Html.AntiForgeryToken()
+        </form>
+        <p id="betaWaitlistStatus" class="beta-waitlist-status" role="status" aria-live="polite"></p>
+    }
+    </div>
     </div>
 </section>
+
+@section Scripts {
+    @if (Model.HasPriceStructureAnalysis)
+    {
+        <script type="application/json" id="researchLevelsData">@Html.Raw(levelJson)</script>
+    }
+    @if (Model.HasSecFilings)
+    {
+        <script type="application/json" id="availableFinancialPeriods">@Html.Raw(availablePeriodsJson)</script>
+    }
+    @if (Model.HasPineScript)
+    {
+        <script src="https://cdn.jsdelivr.net/npm/@@luxalgo/vela@0.7.7/dist/vela.global.min.js" defer></script>
+        <script src="https://cdn.jsdelivr.net/npm/@@luxalgo/vela-pinets@0.2.13/dist/vela-pinets.global.min.js" defer></script>
+    }
+    <script src="/assets/js/instrument-dashboard.js" asp-append-version="true" defer></script>
+}

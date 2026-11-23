@@ -39,8 +39,7 @@
         }
     </style>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="/assets/css/style_v1.4.css">
-    <link rel="stylesheet" href="/assets/css/platform-beta.css" asp-append-version="true">
+    <link rel="stylesheet" href="/assets/css/style_v1.5.css" asp-append-version="true">
      <!-- Absolute path for icons so that they can be resolved by external apps -->
     <link rel="apple-touch-icon" href="https://icpress.org/apple-touch-icon_default.png" />
     <link rel="apple-touch-icon" sizes="57x57" href="https://icpress.org/apple-touch-icon-57x57.png" />
@@ -75,8 +74,8 @@
                 <nav class="nav @(User.Identity?.IsAuthenticated == true ? "nav-auth" : "nav-guest")" id="mainNav">
                     <ul>
                         <li class="theme-nav">
-                            <button class="dark-mode-toggle" id="darkModeToggle" type="button" aria-label="Toggle light or dark theme">
-                                <i class="fas fa-moon"></i> Dark
+                            <button class="dark-mode-toggle" id="darkModeToggle" type="button" aria-label="Switch to dark theme">
+                                <i class="fas fa-moon" aria-hidden="true"></i><span>Dark</span>
                             </button>
                         </li>
                         <li class="account-nav"><partial name="_AccountMenu" /></li>
@@ -120,33 +119,40 @@
         // Dark Mode — applied to <html> so CSS vars cascade before body renders
         const html = document.documentElement;
         const darkModeToggle = document.getElementById('darkModeToggle');
+        const darkModeMenuToggle = document.getElementById('darkModeMenuToggle');
+        const darkModeButtons = [darkModeToggle, darkModeMenuToggle].filter(Boolean);
         let darkMode = localStorage.getItem('darkMode') === 'true';
 
-        // Remove no-transition after first paint so subsequent interactions animate
+        // Remove no-transition after first paint so subsequent interactions animate.
         requestAnimationFrame(function() {
-            requestAnimationFrame(function() {
-                html.classList.remove('no-transition');
-            });
+            requestAnimationFrame(function() { html.classList.remove('no-transition'); });
         });
 
-        // Sync toggle button state (class already applied in <head> inline script)
-        if (darkMode) {
-            darkModeToggle.classList.add('active');
-            darkModeToggle.innerHTML = '<i class="fas fa-sun"></i> Light';
+        function syncThemeButtons() {
+            darkModeButtons.forEach(function(button) {
+                button.classList.toggle('active', darkMode);
+                const icon = button.querySelector('i');
+                const label = button.querySelector('span');
+                if (icon) icon.className = darkMode ? 'fas fa-sun' : 'fas fa-moon';
+                if (label) label.textContent = button === darkModeMenuToggle
+                    ? (darkMode ? 'Light mode' : 'Dark mode')
+                    : (darkMode ? 'Light' : 'Dark');
+                button.setAttribute('aria-label', darkMode ? 'Switch to light theme' : 'Switch to dark theme');
+            });
         }
 
-        darkModeToggle.addEventListener('click', function () {
+        function toggleTheme() {
             darkMode = !darkMode;
             requestAnimationFrame(function() {
                 html.classList.toggle('dark-mode', darkMode);
                 html.setAttribute('data-theme', darkMode ? 'dark' : 'light');
-                darkModeToggle.classList.toggle('active', darkMode);
-                darkModeToggle.innerHTML = darkMode
-                    ? '<i class="fas fa-sun"></i> Light'
-                    : '<i class="fas fa-moon"></i> Dark';
-                localStorage.setItem('darkMode', darkMode);
+                localStorage.setItem('darkMode', String(darkMode));
+                syncThemeButtons();
             });
-        });
+        }
+
+        syncThemeButtons();
+        darkModeButtons.forEach(function(button) { button.addEventListener('click', toggleTheme); });
 
         // Scroll-responsive header 
         const header = document.getElementById('mainHeader');

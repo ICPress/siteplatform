@@ -10,4 +10,11 @@
     <PackageReference Include="SimpleMvcSitemap.Core" Version="4.4.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Content Include="ResearchPack/SEC_FINANCIAL_METRICS_CALCULATION_GUIDE.md">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
+  </ItemGroup>
+
 </Project>

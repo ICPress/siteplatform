@@ -267,7 +267,7 @@ else
             }
 
             @* ── Article body ── *@
-            <div class="story-body">@Html.Raw(formattedContent)</div>
+            <div class="story-body" id="storyArticleBody">@Html.Raw(formattedContent)</div>
 
             @* ── References ── *@
             @{
@@ -972,4 +972,34 @@ function onOutsideRefClick(ev) {
 function onRefEscape(ev) {
     if (ev.key === 'Escape') closeRefPopup();
 }
+
+// Matomo article scroll-depth event: send once when the reader has scrolled
+// beyond the midpoint of the article body (not the surrounding page chrome).
+(function trackArticleHalfway() {
+    var articleBody = document.getElementById('storyArticleBody');
+    if (!articleBody) return;
+    var articleSlug = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Context.Request.RouteValues["slugTitle"]?.ToString() ?? ""));
+    var sent = false;
+    var pending = false;
+    function checkDepth() {
+        if (sent || pending) return;
+        pending = true;
+        window.requestAnimationFrame(function () {
+            pending = false;
+            if (sent || !articleBody.isConnected) return;
+            var articleTop = articleBody.getBoundingClientRect().top + window.scrollY;
+            var halfway = articleTop + (articleBody.offsetHeight * 0.5);
+            if (window.scrollY >= halfway) {
+                sent = true;
+                var queue = window._paq = window._paq || [];
+                queue.push(['trackEvent', 'Article', 'Scroll past 50%', articleSlug]);
+                window.removeEventListener('scroll', checkDepth);
+                window.removeEventListener('resize', checkDepth);
+            }
+        });
+    }
+    window.addEventListener('scroll', checkDepth, { passive: true });
+    window.addEventListener('resize', checkDepth, { passive: true });
+    checkDepth();
+})();
 </script>

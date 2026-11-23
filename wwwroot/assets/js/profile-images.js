@@ -71,12 +71,22 @@
         const response = await fetch(endpoint.href, {method:'PUT', mode:'cors', credentials:'omit', redirect:'error', body:blob, headers:{'X-Auth-Token':token,'Content-Type':'image/jpeg'}});
         if (!response.ok) throw new Error('storage');
     }
+    function miniatureNameMatches(largeUrl, miniatureUrl) {
+        try {
+            const largeName = decodeURIComponent(new URL(largeUrl).pathname.split('/').pop() || '');
+            const miniatureName = decodeURIComponent(new URL(miniatureUrl).pathname.split('/').pop() || '');
+            return !!largeName && miniatureName === `m_${largeName}`;
+        } catch { return false; }
+    }
     async function upload(state) {
         if (!state.large || state.busy) return;
         busy(state, true); state.retry.hidden = true; state.status.textContent = 'Saving photo…';
         try {
             const prepared = await post(state, state.root.dataset.prepareUrl, state.dimensions);
             if (!prepared.ticket || Boolean(prepared.previewUploadUrl) !== Boolean(state.small)) throw new Error('storage');
+            // Miniatures live at small-CDN/m_<large filename>; avatar and cover
+            // uploads share this check so the suffix always matches the full image.
+            if (state.small && !miniatureNameMatches(prepared.uploadUrl, prepared.previewUploadUrl)) throw new Error('storage');
             await put(prepared.uploadUrl, prepared.authToken, state.large);
             if (state.small) await put(prepared.previewUploadUrl, prepared.authToken, state.small);
             // Commit only after every required object has been uploaded. The API verifies both dimensions.

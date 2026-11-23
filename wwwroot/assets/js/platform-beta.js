@@ -9,7 +9,7 @@
         el.textContent = /^[A-Z]{2}$/.test(code) ? [...code].map(c => String.fromCodePoint(127397 + c.charCodeAt(0))).join('') : '🌐';
         return el;
     };
-    const url = item => '/instrument/' + encodeURIComponent(item.id);
+    const url = item => '/instrument/' + [item.countryCode, item.exchange, item.symbol].map(encodeURIComponent).join('/');
 
     // Accessible, debounced autocomplete. Sequence IDs discard every stale response, including during debounce.
     const input = byId('instrument-query'), results = byId('instrument-results'), status = byId('instrument-search-status');
@@ -116,12 +116,14 @@
     const instrumentChart = byId('instrument-chart');
     if (instrumentChart) renderChart(instrumentChart, instrumentChart.dataset.symbol);
     const modeToggle = byId('chartModeToggle'), expandToggle = byId('marketExpandToggle');
-    modeToggle?.addEventListener('click', () => {
-        const technical = modeToggle.getAttribute('aria-pressed') !== 'true';
-        modeToggle.setAttribute('aria-pressed', String(technical));
-        modeToggle.querySelector('span').textContent = technical ? 'Live chart' : 'Technical chart';
-        instrumentChart.hidden = technical; byId('technical-chart').hidden = !technical;
-    });
+    if (modeToggle && !byId('instrumentDashboard')) {
+        modeToggle.addEventListener('click', () => {
+            const technical = modeToggle.getAttribute('aria-pressed') !== 'true';
+            modeToggle.setAttribute('aria-pressed', String(technical));
+            modeToggle.querySelector('span').textContent = technical ? 'Live chart' : 'Technical chart';
+            instrumentChart.hidden = technical; byId('technical-chart').hidden = !technical;
+        });
+    }
     const expandChart = expanded => {
         byId('marketExpandRegion')?.classList.toggle('market-expanded', expanded);
         expandToggle?.setAttribute('aria-expanded', String(expanded));

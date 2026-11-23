@@ -1,0 +1,99 @@
+@model siteplatform.Models.PricePatternPageModel
+@using siteplatform.Models
+@{
+    var selected = Model.SelectedPattern;
+    ViewData["Title"] = selected == null ? "Price Patterns" : selected.Pattern.Name + " · Price Patterns";
+    var total = Model.Scanner.TotalIdentifiedPatterns;
+    var groups = Model.Scanner.Patterns.Where(x => x.Count > 0)
+        .GroupBy(x => x.Category).ToList();
+}
+<section class="container country-market-page price-patterns-page">
+    <header class="country-market-heading price-patterns-heading">
+        <div>
+            <span class="beta-kicker">Technical pattern scanner</span>
+            @if (selected == null)
+            {
+                <h1>Price Patterns <span class="pattern-total-count">@total identified patterns</span></h1>
+                <p>Browse instruments by the latest active chart patterns and options-wall positioning.</p>
+            }
+            else
+            {
+                <nav class="instrument-breadcrumbs" aria-label="Breadcrumb">
+                    <a href="/price_patterns">Price Patterns</a><span>/</span><strong>@selected.Pattern.Name</strong>
+                </nav>
+                <h1>@selected.Pattern.Name <span class="pattern-total-count">@selected.Count @(selected.Count == 1 ? "instrument" : "instruments")</span></h1>
+                <p>@selected.Pattern.Category · Instruments with this active price-pattern signal.</p>
+            }
+        </div>
+        <div class="country-market-date pattern-scanner-total">
+            <span>Total identified patterns</span>
+            <strong>@total</strong>
+            <small>@Model.Scanner.TotalInstruments instruments</small>
+        </div>
+    </header>
+
+    @if (selected == null)
+    {
+        @if (groups.Count == 0)
+        {
+            <div class="country-market-empty">No active price patterns are currently identified.</div>
+        }
+        else
+        {
+            <div class="pattern-scanner-groups">
+                @foreach (var group in groups)
+                {
+                    <section class="pattern-group">
+                        <h2 class="pattern-group-title">@group.Key</h2>
+                        <div class="pattern-grid pattern-scanner-grid">
+                            @foreach (var pattern in group.OrderByDescending(x => x.Count).ThenBy(x => x.Name))
+                            {
+                                <a class="pattern-btn pattern-scanner-card tone-@pattern.Tone"
+                                   href="/price_patterns/@Uri.EscapeDataString(pattern.Slug)">
+                                    <span class="pattern-icon">@Html.Raw(PricePatternVisuals.Svg(pattern.Key))</span>
+                                    <span class="pattern-label">@pattern.Name</span>
+                                    <strong class="pattern-count">@pattern.Count</strong>
+                                </a>
+                            }
+                        </div>
+                    </section>
+                }
+            </div>
+        }
+    }
+    else
+    {
+        <div class="pattern-detail-toolbar">
+            <a href="/price_patterns"><i class="fas fa-arrow-left" aria-hidden="true"></i> All price patterns</a>
+            <span>@selected.Count @(selected.Count == 1 ? "instrument" : "instruments") identified</span>
+        </div>
+        @if (selected.Instruments.Count == 0)
+        {
+            <div class="country-market-empty">No instruments currently match this pattern.</div>
+        }
+        else
+        {
+            <section class="country-market-group pattern-instrument-group">
+                <div class="country-market-company-list">
+                    @foreach (var item in selected.Instruments)
+                    {
+                        <a class="country-market-company" href="/instrument/@Uri.EscapeDataString(item.CountryCode)/@Uri.EscapeDataString(item.Exchange)/@Uri.EscapeDataString(item.Symbol)">
+                            <span class="country-market-company-name">@item.Name <small>@item.Symbol · @item.Exchange · @item.CountryCode</small></span>
+                            <span class="country-market-company-move">
+                                @if (item.LatestClose.HasValue)
+                                {
+                                    <span>@item.LatestClose.Value.ToString("N3")</span>
+                                }
+                                @if (!string.IsNullOrWhiteSpace(item.LatestCloseDate))
+                                {
+                                    <small>@item.LatestCloseDate</small>
+                                }
+                                <i class="fas fa-chevron-right" aria-hidden="true"></i>
+                            </span>
+                        </a>
+                    }
+                </div>
+            </section>
+        }
+    }
+</section>

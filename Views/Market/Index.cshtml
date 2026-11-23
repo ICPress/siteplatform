@@ -1,0 +1,85 @@
+@model siteplatform.Models.MarketPageModel
+@{
+    var marketName = Model.CountryCode.ToUpperInvariant() + " Market";
+    var marketPath = "/market/" + Uri.EscapeDataString(Model.CountryCode.ToLowerInvariant());
+    var description = Model.SelectedGroup == null
+        ? Model.CountryCode.ToUpperInvariant() + "-listed large-cap and mid-cap companies, grouped by industry category."
+        : Model.CountryCode.ToUpperInvariant() + "-listed large-cap and mid-cap companies in this industry group, using the latest market close.";
+    ViewData["Title"] = (Model.SelectedGroup ?? marketName) + " · Companies";
+}
+<header class="instrument-page-header">
+    <div class="container instrument-page-header-inner">
+        @if (!string.IsNullOrWhiteSpace(Model.SelectedGroup))
+        {
+            <nav class="instrument-breadcrumbs" aria-label="Breadcrumb">
+                <a href="@marketPath">@marketName</a><span aria-hidden="true">/</span><span class="instrument-breadcrumb-current">@Model.SelectedGroup</span>
+            </nav>
+        }
+        <span class="instrument-category-badge">Companies &amp; instruments</span>
+        <h1 class="instrument-title">@(Model.SelectedGroup ?? marketName)</h1>
+        <div class="instrument-meta-row">
+            <div class="instrument-meta-primary">
+                <span class="instrument-meta-avatar" aria-hidden="true"><i class="fas fa-chart-pie"></i></span>
+                <span class="instrument-meta-copy">@description</span>
+            </div>
+            @if (!string.IsNullOrWhiteSpace(Model.LatestCloseDate))
+            {
+                <div class="instrument-meta-stats market-heading-stats" aria-label="Latest market close summary">
+                    <span class="instrument-meta-stat market-heading-date">
+                        <span>Latest @Model.CountryCode.ToUpperInvariant() close</span>
+                        <strong>@DateTime.Parse(Model.LatestCloseDate).ToString("dd MMM yyyy")</strong>
+                    </span>
+                    <span class="market-heading-movements">
+                        <span class="market-up"><i class="fas fa-arrow-up" aria-hidden="true"></i> @Model.GreenCount up</span>
+                        <span class="market-down"><i class="fas fa-arrow-down" aria-hidden="true"></i> @Model.RedCount down</span>
+                    </span>
+                </div>
+            }
+        </div>
+    </div>
+</header>
+
+<section class="container country-market-page">
+    @if (Model.Groups.Count == 0)
+    {
+        <div class="country-market-empty">No company closing prices are available for the latest recorded trading date.</div>
+    }
+    else
+    {
+        @foreach (var group in Model.Groups)
+        {
+            <section class="country-market-group">
+                <header class="country-market-group-head">
+                    <h2><a href="@marketPath/group/@Uri.EscapeDataString(group.Name)">@group.Name</a></h2>
+                    <div class="country-market-group-summary" aria-label="Daily movement summary">
+                        <span class="market-up"><i class="fas fa-arrow-up" aria-hidden="true"></i> @group.GreenCount</span>
+                        <span class="market-down"><i class="fas fa-arrow-down" aria-hidden="true"></i> @group.RedCount</span>
+                    </div>
+                </header>
+                <div class="country-market-company-list">
+                    @foreach (var item in group.Instruments)
+                    {
+                        <a class="country-market-company" href="/instrument/@Uri.EscapeDataString(item.CountryCode)/@Uri.EscapeDataString(item.Exchange)/@Uri.EscapeDataString(item.Symbol)">
+                            <span class="country-market-company-name">@item.Name <small>@item.Symbol · @item.Exchange</small></span>
+                            <span class="country-market-company-move">
+                                @if (item.Direction == "up")
+                                {
+                                    <i class="fas fa-arrow-up market-up" title="Open above previous close" aria-label="Up"></i>
+                                }
+                                else if (item.Direction == "down")
+                                {
+                                    <i class="fas fa-arrow-down market-down" title="Latest close below previous close" aria-label="Down"></i>
+                                }
+                                else
+                                {
+                                    <i class="fas fa-minus market-flat" title="No previous close comparison" aria-label="Unchanged or unavailable"></i>
+                                }
+                                <span>@item.ClosePrice.ToString("N2")</span>
+                            </span>
+                        </a>
+                    }
+                </div>
+            </section>
+        }
+    }
+</section>
